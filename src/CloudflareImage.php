@@ -234,7 +234,7 @@ class CloudflareImage
 
         return empty($this->transforms)
             ? $baseUrl
-            : $this->buildTransformUrl($baseUrl);
+            : $this->buildTransformUrl();
     }
 
     public function width(int $width = 640, bool $auto = false): self
@@ -261,7 +261,7 @@ class CloudflareImage
         return "https://{$this->domain}/{$this->path}";
     }
 
-    private function buildTransformUrl(string $originalUrl): string
+    private function buildTransformUrl(): string
     {
         $options = array_map(
             fn ($key, $value) => match ($key) {
@@ -275,7 +275,7 @@ class CloudflareImage
 
         return "https://{$this->domain}/{$this->transformPath}/"
             .implode(',', $options)
-            ."/{$originalUrl}";
+            ."/{$this->path}";
     }
 
     private function with(string $key, mixed $value): self
