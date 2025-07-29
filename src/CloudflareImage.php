@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Storage;
 use InvalidArgumentException;
 
-class MediaUrlBuilder
+class CloudflareImage
 {
     /** @var array<string,string> */
     private array $transforms = [];
