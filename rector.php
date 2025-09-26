@@ -31,13 +31,6 @@ return RectorConfig::configure()
         DefaultCollectionKeyRector::class,
         EloquentWhereTypeHintClosureParameterRector::class,
         AddGenericReturnTypeToRelationsRector::class,
-
-        //        AddClosureParamTypeFromIterableMethodCallRector::class,
-        //        AddClosureParamTypeFromArgRector::class,
-        //        AddClosureParamTypeFromObjectRector::class,
-        //        StaticArrowFunctionRector::class,
-        //        WrapEncapsedVariableInCurlyBracesRector::class,
-        //        NewlineAfterStatementRector::class,
     ])
     ->withSets([
         LaravelSetList::LARAVEL_CODE_QUALITY,
