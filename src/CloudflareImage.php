@@ -25,7 +25,9 @@ class CloudflareImage implements Stringable
         private readonly string $domain,
         private readonly string $disk,
         private readonly string $transformPath,
-    ) {}
+    )
+    {
+    }
 
     public function __toString(): string
     {
@@ -89,7 +91,7 @@ class CloudflareImage implements Stringable
 
     public function format(Format $format): self
     {
-        return $this->with('format', $format->value);
+        return $this->with('f', $format->value);
     }
 
     public function gamma(float $gamma): self
@@ -101,13 +103,17 @@ class CloudflareImage implements Stringable
 
     public function gravity(Gravity|string $gravity): self
     {
-        $value = $gravity instanceof Gravity ? $gravity->value : $gravity;
+        if ($gravity instanceof Gravity) {
+            return $this->with('gravity', $gravity->value);
+        }
 
-        return match (true) {
-            $gravity instanceof Gravity => $this->with('gravity', $value),
-            preg_match('/^(0(\.\d+)?|1(\.0+)?)x(0(\.\d+)?|1(\.0+)?)$/', $value) => $this->with('gravity', $value),
-            default => throw new InvalidArgumentException('Invalid gravity')
-        };
+        $value = $gravity;
+
+        if (preg_match('/^(0|0\.\d+|1|1\.0*)x(0|0\.\d+|1|1\.0*)$/', $value)) {
+            return $this->with('gravity', $value);
+        }
+
+        throw new InvalidArgumentException('Invalid gravity');
     }
 
     public function grayscale(): self
@@ -118,23 +124,24 @@ class CloudflareImage implements Stringable
     public function height(int $height): self
     {
         return $height >= 1 && $height <= 12000
-            ? $this->with('height', $height)
+            ? $this->with('h', $height)
             : throw new InvalidArgumentException('Height must be 1-12,000');
     }
 
     public static function make(
-        string $path,
+        string  $path,
         ?string $domain = null,
         ?string $disk = null,
         ?string $transformPath = null,
-    ): self {
+    ): self
+    {
         // Use Config::get() for graceful fallbacks instead of Config::string() which throws exceptions
         $domain ??= Config::get('cloudflare-transforms.domain');
         $disk ??= Config::get('cloudflare-transforms.disk') ?? config('filesystems.default', 'public');
         $transformPath ??= Config::get('cloudflare-transforms.transform_path', 'cdn-cgi/image');
 
         // If no domain is configured, fall back to parsing the current APP_URL
-        if (! $domain) {
+        if (!$domain) {
             $appUrl = config('app.url', 'http://localhost');
             $domain = is_string($appUrl) ? parse_url($appUrl, PHP_URL_HOST) ?? 'localhost' : 'localhost';
         }
@@ -172,8 +179,8 @@ class CloudflareImage implements Stringable
     public function quality(Quality|int $quality): self
     {
         return match (true) {
-            $quality instanceof Quality => $this->with('quality', $quality->value),
-            $quality >= 1 && $quality <= 100 => $this->with('quality', $quality),
+            $quality instanceof Quality => $this->with('q', $quality->value),
+            $quality >= 1 && $quality <= 100 => $this->with('q', $quality),
             default => throw new InvalidArgumentException('Invalid quality')
         };
     }
@@ -247,7 +254,7 @@ class CloudflareImage implements Stringable
             throw new InvalidArgumentException('Invalid path');
         }
 
-        if (! Storage::disk($this->disk)->exists($this->path)) {
+        if (!Storage::disk($this->disk)->exists($this->path)) {
             throw new InvalidArgumentException("File does not exist: {$this->path}");
         }
 
@@ -261,9 +268,9 @@ class CloudflareImage implements Stringable
     public function width(int $width = 640, bool $auto = false): self
     {
         return match (true) {
-            $auto => $this->with('width', 'auto'),
+            $auto => $this->with('w', 'auto'),
             default => $width >= 1 && $width <= 12000
-                ? $this->with('width', $width)
+                ? $this->with('w', $width)
                 : throw new InvalidArgumentException("Width must be 1-12,000 or 'auto'")
         };
     }
@@ -271,7 +278,7 @@ class CloudflareImage implements Stringable
     public function zoom(float $zoom): self
     {
         return match (true) {
-            ! ($zoom >= 0 && $zoom <= 1) => throw new InvalidArgumentException('Zoom must be 0-1'),
+            !($zoom >= 0 && $zoom <= 1) => throw new InvalidArgumentException('Zoom must be 0-1'),
             ($this->transforms['gravity'] ?? null) !== 'face' => throw new InvalidArgumentException('Zoom requires gravity=face'),
             default => $this->with('zoom', $zoom)
         };
@@ -285,9 +292,9 @@ class CloudflareImage implements Stringable
     private function buildTransformUrl(): string
     {
         $options = array_map(
-            fn ($key, $value): string => match ($key) {
-                'background' => 'background='.urlencode($value),
-                'anim' => 'anim='.($value !== '' && $value !== '0' ? 'true' : 'false'),
+            fn($key, $value): string => match ($key) {
+                'background' => 'background=' . urlencode($value),
+                'anim' => 'anim=' . ($value !== '' && $value !== '0' ? 'true' : 'false'),
                 default => "{$key}={$value}"
             },
             array_keys($this->transforms),
@@ -295,13 +302,13 @@ class CloudflareImage implements Stringable
         );
 
         return "https://{$this->domain}/{$this->transformPath}/"
-            .implode(',', $options)
-            ."/{$this->path}";
+            . implode(',', $options)
+            . "/{$this->path}";
     }
 
     private function with(string $key, mixed $value): self
     {
-        if (! is_scalar($value)) {
+        if (!is_scalar($value)) {
             throw new InvalidArgumentException("Value for {$key} must be scalar");
         }
 

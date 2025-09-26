@@ -16,6 +16,8 @@
     "laravel/boost": "^1.2",
     "driftingly/rector-laravel": "^2.0",
     "laravel/pint": "^1.0",
+    "mockery/mockery": "^1.6",
+    "orchestra/testbench": "^10.0",
     "pestphp/pest": "^4.0",
     "pestphp/pest-plugin-laravel": "^4.0",
     "phpstan/phpstan": "^2.0",
