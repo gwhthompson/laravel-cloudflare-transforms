@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Gwhthompson\CloudflareTransforms;
 
+use Override;
 use Gwhthompson\CloudflareTransforms\Enums\Fit;
 use Gwhthompson\CloudflareTransforms\Enums\Format;
 use Gwhthompson\CloudflareTransforms\Enums\Quality;
@@ -45,32 +46,37 @@ class CloudflareFilesystemAdapter extends FilesystemAdapter
      */
     public function transformedUrl(string $path, array $options = []): string
     {
-        $image = CloudflareImage::make($path, $this->cloudflareDomain);
+        $cloudflareImage = CloudflareImage::make($path, $this->cloudflareDomain);
 
         // Apply transformations from options array
         if (isset($options['width']) && is_int($options['width'])) {
-            $image->width($options['width']);
-        }
-        if (isset($options['height']) && is_int($options['height'])) {
-            $image->height($options['height']);
-        }
-        if (isset($options['format']) && $options['format'] instanceof Format) {
-            $image->format($options['format']);
-        }
-        if (isset($options['quality']) && (is_int($options['quality']) || $options['quality'] instanceof Quality)) {
-            $image->quality($options['quality']);
-        }
-        if (isset($options['fit']) && $options['fit'] instanceof Fit) {
-            $image->fit($options['fit']);
+            $cloudflareImage->width($options['width']);
         }
 
-        return $image->url();
+        if (isset($options['height']) && is_int($options['height'])) {
+            $cloudflareImage->height($options['height']);
+        }
+
+        if (isset($options['format']) && $options['format'] instanceof Format) {
+            $cloudflareImage->format($options['format']);
+        }
+
+        if (isset($options['quality']) && (is_int($options['quality']) || $options['quality'] instanceof Quality)) {
+            $cloudflareImage->quality($options['quality']);
+        }
+
+        if (isset($options['fit']) && $options['fit'] instanceof Fit) {
+            $cloudflareImage->fit($options['fit']);
+        }
+
+        return $cloudflareImage->url();
     }
 
     /**
      * Get the URL for the file at the given path.
      * Automatically returns Cloudflare URL.
      */
+    #[Override]
     public function url($path): string
     {
         if (isset($this->config['prefix'])) {

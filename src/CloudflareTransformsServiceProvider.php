@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Gwhthompson\CloudflareTransforms;
 
+use Override;
 use Aws\S3\S3Client;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Filesystem\FilesystemAdapter;
@@ -26,6 +27,7 @@ class CloudflareTransformsServiceProvider extends ServiceProvider
         $this->registerAboutCommand();
     }
 
+    #[Override]
     public function register(): void
     {
         $this->mergeConfigFrom(
@@ -37,9 +39,9 @@ class CloudflareTransformsServiceProvider extends ServiceProvider
     /** Register the cloudflare-s3 driver for S3-compatible storage with Cloudflare URLs. */
     protected function registerCloudflareDriver(): void
     {
-        Storage::extend('cloudflare-s3', function (Application $app, array $config) {
+        Storage::extend('cloudflare-s3', function (Application $application, array $config): CloudflareFilesystemAdapter {
             // Create S3 client (works with Backblaze B2 and other S3-compatible services)
-            $client = new S3Client([
+            $s3Client = new S3Client([
                 'credentials' => [
                     'key' => $config['key'],
                     'secret' => $config['secret'],
@@ -50,11 +52,11 @@ class CloudflareTransformsServiceProvider extends ServiceProvider
                 'use_path_style_endpoint' => $config['use_path_style_endpoint'] ?? false,
             ]);
 
-            $adapter = new AwsS3V3Adapter($client, $config['bucket']);
-            $filesystem = new Filesystem($adapter, $config);
+            $awsS3V3Adapter = new AwsS3V3Adapter($s3Client, $config['bucket']);
+            $filesystem = new Filesystem($awsS3V3Adapter, $config);
 
             // Return our custom adapter that handles Cloudflare URLs automatically
-            return new CloudflareFilesystemAdapter($filesystem, $adapter, $config);
+            return new CloudflareFilesystemAdapter($filesystem, $awsS3V3Adapter, $config);
         });
     }
 
@@ -71,7 +73,7 @@ class CloudflareTransformsServiceProvider extends ServiceProvider
             return $this->url($path);
         });
 
-        FilesystemAdapter::macro('image', function (string $path) {
+        FilesystemAdapter::macro('image', function (string $path): CloudflareImage|NullCloudflareImage {
             if ($this instanceof CloudflareFilesystemAdapter) {
                 return $this->image($path);
             }

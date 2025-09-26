@@ -25,14 +25,9 @@ use RectorLaravel\Set\Packages\Livewire\LivewireSetList;
 
 return RectorConfig::configure()
     ->withPaths([
-        __DIR__.'/src',
+        __DIR__ . '/src',
     ])
     ->withRules([
-        RenamePropertyToMatchTypeRector::class,
-        RenameVariableToMatchNewTypeRector::class,
-        RenameVariableToMatchMethodCallReturnTypeRector::class,
-        RenameForeachValueVariableToMatchMethodCallReturnTypeRector::class,
-        RenameForeachValueVariableToMatchExprVariableRector::class,
         DefaultCollectionKeyRector::class,
         EloquentWhereTypeHintClosureParameterRector::class,
         AddGenericReturnTypeToRelationsRector::class,
@@ -63,7 +58,7 @@ return RectorConfig::configure()
         naming: true,
         instanceOf: true,
         earlyReturn: true,
-        //        strictBooleans: true,
+        strictBooleans: true,
         carbon: true,
         rectorPreset: true,
     )

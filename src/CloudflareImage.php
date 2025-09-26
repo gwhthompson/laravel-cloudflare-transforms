@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Gwhthompson\CloudflareTransforms;
 
+use Stringable;
 use Gwhthompson\CloudflareTransforms\Enums\Fit;
 use Gwhthompson\CloudflareTransforms\Enums\Flip;
 use Gwhthompson\CloudflareTransforms\Enums\Format;
@@ -14,7 +15,7 @@ use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Storage;
 use InvalidArgumentException;
 
-class CloudflareImage
+class CloudflareImage implements Stringable
 {
     /** @var array<string, string> */
     private array $transforms = [];
@@ -81,9 +82,9 @@ class CloudflareImage
         return $this->with('fit', $fit->value);
     }
 
-    public function flip(Flip $direction): self
+    public function flip(Flip $flip): self
     {
-        return $this->with('flip', $direction->value);
+        return $this->with('flip', $flip->value);
     }
 
     public function format(Format $format): self
@@ -128,18 +129,14 @@ class CloudflareImage
         ?string $transformPath = null,
     ): self {
         // Use Config::get() for graceful fallbacks instead of Config::string() which throws exceptions
-        $domain = $domain ?? Config::get('cloudflare-transforms.domain');
-        $disk = $disk ?? Config::get('cloudflare-transforms.disk') ?? config('filesystems.default') ?? 'public';
-        $transformPath = $transformPath ?? Config::get('cloudflare-transforms.transform_path', 'cdn-cgi/image');
+        $domain ??= Config::get('cloudflare-transforms.domain');
+        $disk ??= Config::get('cloudflare-transforms.disk') ?? config('filesystems.default', 'public');
+        $transformPath ??= Config::get('cloudflare-transforms.transform_path', 'cdn-cgi/image');
 
         // If no domain is configured, fall back to parsing the current APP_URL
         if (! $domain) {
             $appUrl = config('app.url', 'http://localhost');
-            if (is_string($appUrl)) {
-                $domain = parse_url($appUrl, PHP_URL_HOST) ?? 'localhost';
-            } else {
-                $domain = 'localhost';
-            }
+            $domain = is_string($appUrl) ? parse_url($appUrl, PHP_URL_HOST) ?? 'localhost' : 'localhost';
         }
 
         // Ensure all required parameters are strings
@@ -229,6 +226,7 @@ class CloudflareImage
             if ($tolerance < 0 || $tolerance > 255) {
                 throw new InvalidArgumentException('Tolerance must be between 0-255');
             }
+
             $instance = $instance->with('trim.border.tolerance', $tolerance);
         }
 
@@ -236,6 +234,7 @@ class CloudflareImage
             if ($keep < 0) {
                 throw new InvalidArgumentException('Keep must be 0 or greater');
             }
+
             $instance = $instance->with('trim.border.keep', $keep);
         }
 
@@ -244,7 +243,7 @@ class CloudflareImage
 
     public function url(): string
     {
-        if (empty($this->path) || str_contains($this->path, '..')) {
+        if ($this->path === '' || $this->path === '0' || str_contains($this->path, '..')) {
             throw new InvalidArgumentException('Invalid path');
         }
 
@@ -254,7 +253,7 @@ class CloudflareImage
 
         $baseUrl = $this->buildBaseUrl();
 
-        return empty($this->transforms)
+        return $this->transforms === []
             ? $baseUrl
             : $this->buildTransformUrl();
     }
@@ -286,9 +285,9 @@ class CloudflareImage
     private function buildTransformUrl(): string
     {
         $options = array_map(
-            fn ($key, $value) => match ($key) {
+            fn ($key, $value): string => match ($key) {
                 'background' => 'background='.urlencode($value),
-                'anim' => 'anim='.($value ? 'true' : 'false'),
+                'anim' => 'anim='.($value !== '' && $value !== '0' ? 'true' : 'false'),
                 default => "{$key}={$value}"
             },
             array_keys($this->transforms),

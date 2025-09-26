@@ -4,17 +4,16 @@ declare(strict_types=1);
 
 namespace Gwhthompson\CloudflareTransforms;
 
+use Stringable;
+
 /**
  * Null object pattern for CloudflareImage when used on non-Cloudflare disks.
  * Provides the same API but returns regular URLs without transformations.
  */
-class NullCloudflareImage
+class NullCloudflareImage implements Stringable
 {
-    private string $originalUrl;
-
-    public function __construct(string $originalUrl)
+    public function __construct(private readonly string $originalUrl)
     {
-        $this->originalUrl = $originalUrl;
     }
 
     /**
