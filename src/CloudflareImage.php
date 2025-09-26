@@ -15,6 +15,12 @@ use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Storage;
 use InvalidArgumentException;
 
+/**
+ * Fluent API builder for constructing Cloudflare Image Transformation URLs.
+ *
+ * Provides chainable methods for all Cloudflare image transformation parameters
+ * (width, height, format, quality, fit, etc.) and generates the final transformed URL.
+ */
 class CloudflareImage implements Stringable
 {
     /** @var array<string, string> */
@@ -34,16 +40,25 @@ class CloudflareImage implements Stringable
         return $this->url();
     }
 
+    /**
+     * Whether to preserve animation frames. Default true.
+     */
     public function anim(bool $preserve = true): self
     {
         return $this->with('anim', $preserve);
     }
 
+    /**
+     * Background color for transparent images (e.g., PNG) and images resized with fit=pad.
+     */
     public function background(string $color): self
     {
         return $this->with('background', $color);
     }
 
+    /**
+     * Blur radius between 1 (slight blur) and 250 (maximum).
+     */
     public function blur(float $blur): self
     {
         return $blur >= 1 && $blur <= 250
@@ -51,6 +66,9 @@ class CloudflareImage implements Stringable
             : throw new InvalidArgumentException('Blur must be 1-250');
     }
 
+    /**
+     * Brightness multiplier. 1.0 = no change, 0.5 = half brightness, 2.0 = twice as bright.
+     */
     public function brightness(float $brightness): self
     {
         return $brightness >= 0 && $brightness <= 2
@@ -79,16 +97,25 @@ class CloudflareImage implements Stringable
             : throw new InvalidArgumentException('DPR must be 0.1-5');
     }
 
+    /**
+     * How to resize the image within the given dimensions.
+     */
     public function fit(Fit $fit): self
     {
         return $this->with('fit', $fit->value);
     }
 
+    /**
+     * Flip the image horizontally, vertically, or both.
+     */
     public function flip(Flip $flip): self
     {
         return $this->with('flip', $flip->value);
     }
 
+    /**
+     * Output format. Use Format::Auto for WebP/AVIF in supported browsers.
+     */
     public function format(Format $format): self
     {
         return $this->with('f', $format->value);
@@ -101,6 +128,9 @@ class CloudflareImage implements Stringable
             : throw new InvalidArgumentException('Gamma must be 0-2');
     }
 
+    /**
+     * Focal point for cropping when used with fit=cover or fit=crop.
+     */
     public function gravity(Gravity|string $gravity): self
     {
         if ($gravity instanceof Gravity) {
@@ -121,6 +151,9 @@ class CloudflareImage implements Stringable
         return $this->saturation(0);
     }
 
+    /**
+     * Maximum height in pixels. Behavior depends on fit mode.
+     */
     public function height(int $height): self
     {
         return $height >= 1 && $height <= 12000
@@ -128,6 +161,9 @@ class CloudflareImage implements Stringable
             : throw new InvalidArgumentException('Height must be 1-12,000');
     }
 
+    /**
+     * Create a new CloudflareImage instance.
+     */
     public static function make(
         string  $path,
         ?string $domain = null,
@@ -176,6 +212,9 @@ class CloudflareImage implements Stringable
         return $this->format(Format::Auto)->quality(Quality::High);
     }
 
+    /**
+     * Quality for JPEG, WebP, and AVIF formats (1-100 or Quality enum).
+     */
     public function quality(Quality|int $quality): self
     {
         return match (true) {
@@ -248,6 +287,9 @@ class CloudflareImage implements Stringable
         return $instance;
     }
 
+    /**
+     * Generate the final Cloudflare transformation URL.
+     */
     public function url(): string
     {
         if ($this->path === '' || $this->path === '0' || str_contains($this->path, '..')) {
@@ -265,6 +307,9 @@ class CloudflareImage implements Stringable
             : $this->buildTransformUrl();
     }
 
+    /**
+     * Maximum width in pixels. Use auto=true for automatic responsive sizing.
+     */
     public function width(int $width = 640, bool $auto = false): self
     {
         return match (true) {

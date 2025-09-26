@@ -12,13 +12,21 @@ use Illuminate\Filesystem\FilesystemAdapter;
 use League\Flysystem\FilesystemAdapter as FlysystemAdapter;
 use League\Flysystem\FilesystemOperator;
 
+/**
+ * Laravel FilesystemAdapter that provides Cloudflare-specific URL generation.
+ *
+ * Extends Laravel's FilesystemAdapter to return Cloudflare CDN URLs and provides
+ * the image() method for fluent transformation API and transformedUrl() for array-based options.
+ */
 class CloudflareFilesystemAdapter extends FilesystemAdapter
 {
     protected bool $autoTransform;
 
     protected string $cloudflareDomain;
 
-    /** @param array<string, mixed> $config */
+    /**
+     * @param array<string, mixed> $config
+     */
     public function __construct(
         FilesystemOperator $driver,
         FlysystemAdapter $adapter,
@@ -33,7 +41,9 @@ class CloudflareFilesystemAdapter extends FilesystemAdapter
         $this->autoTransform = is_bool($autoTransform) ? $autoTransform : true;
     }
 
-    /** Create a CloudflareImage builder for fluent transformation. */
+    /**
+     * Create a CloudflareImage builder for fluent transformation.
+     */
     public function image(string $path): CloudflareImage
     {
         return CloudflareImage::make($path, $this->cloudflareDomain);
