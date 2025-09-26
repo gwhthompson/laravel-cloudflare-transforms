@@ -1,0 +1,48 @@
+{
+  "mcpServers": {
+    "herd": {
+      "command": "php",
+      "args": [
+        "/Applications/Herd.app/Contents/Resources/herd-mcp.phar"
+      ],
+      "env": {
+        "SITE_PATH": "/Users/george/Herd/laravel-cloudflare-transforms"
+      }
+    },
+    "serena": {
+      "command": "uvx",
+      "args": [
+        "--from",
+        "git+https://github.com/oraios/serena",
+        "serena",
+        "start-mcp-server",
+        "--context",
+        "ide-assistant",
+        "--project",
+        "/Users/george/Herd/laravel-cloudflare-transforms"
+      ]
+    },
+    "jetbrains": {
+      "command": "/Applications/PhpStorm.app/Contents/jbr/Contents/Home/bin/java",
+      "args": [
+        "-classpath",
+        "/Applications/PhpStorm.app/Contents/plugins/mcpserver/lib/mcpserver-frontend.jar:/Applications/PhpStorm.app/Contents/lib/util-8.jar",
+        "com.intellij.mcpserver.stdio.McpStdioRunnerKt"
+      ],
+      "env": {
+        "IJ_MCP_SERVER_PORT": "64342"
+      }
+    },
+    "context7": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@upstash/context7-mcp",
+        "--api-key",
+        "ctx7sk-f2e2e3fd-df50-46eb-8c82-c0f0d7f6d42e"
+      ],
+      "env": {}
+    }
+  }
+}

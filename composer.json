@@ -1,39 +1,57 @@
 {
-    "$schema": "https://getcomposer.org/schema.json",
-    "name": "gwhthompson/laravel-cloudflare-transforms",
-    "type": "library",
-    "license": "MIT",
-    "version": "1.0.2",
-    "require": {
-        "php": "^8.4",
-        "illuminate/support": "^12.0",
-        "illuminate/filesystem": "^12.0"
-    },
-    "require-dev": {
-        "laravel/pint": "^1.0",
-        "phpstan/phpstan": "^2.0"
-    },
-    "autoload": {
-        "psr-4": {
-            "Gwhthompson\\CloudflareTransforms\\": "src/"
-        }
-    },
-    "extra": {
-        "laravel": {
-            "providers": [
-                "Gwhthompson\\CloudflareTransforms\\CloudflareTransformsServiceProvider"
-            ]
-        }
-    },
-    "config": {
-        "optimize-autoloader": true,
-        "preferred-install": "dist",
-        "sort-packages": true,
-        "allow-plugins": {
-            "pestphp/pest-plugin": true,
-            "php-http/discovery": true
-        }
-    },
-    "minimum-stability": "stable",
-    "prefer-stable": true
+  "$schema": "https://getcomposer.org/schema.json",
+  "name": "gwhthompson/laravel-cloudflare-transforms",
+  "type": "library",
+  "license": "MIT",
+  "version": "1.0.2",
+  "require": {
+    "php": "^8.4",
+    "illuminate/support": "^12.0",
+    "illuminate/filesystem": "^12.0",
+    "aws/aws-sdk-php": "^3.0",
+    "league/flysystem": "^3.0",
+    "league/flysystem-aws-s3-v3": "^3.0"
+  },
+  "require-dev": {
+    "laravel/boost": "^1.2",
+    "driftingly/rector-laravel": "^2.0",
+    "laravel/pint": "^1.0",
+    "pestphp/pest": "^4.0",
+    "pestphp/pest-plugin-laravel": "^4.0",
+    "phpstan/phpstan": "^2.0",
+    "rector/rector": "^2.0.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "Gwhthompson\\CloudflareTransforms\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Gwhthompson\\CloudflareTransforms\\Tests\\": "tests/"
+    }
+  },
+  "scripts": {
+    "test": "./vendor/bin/pest",
+    "lint": "./vendor/bin/pint",
+    "analyse": "./vendor/bin/phpstan analyse"
+  },
+  "extra": {
+    "laravel": {
+      "providers": [
+        "Gwhthompson\\CloudflareTransforms\\CloudflareTransformsServiceProvider"
+      ]
+    }
+  },
+  "config": {
+    "optimize-autoloader": true,
+    "preferred-install": "dist",
+    "sort-packages": true,
+    "allow-plugins": {
+      "pestphp/pest-plugin": true,
+      "php-http/discovery": true
+    }
+  },
+  "minimum-stability": "stable",
+  "prefer-stable": true
 }

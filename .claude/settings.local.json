@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__serena",
+      "mcp__jetbrains",
+      "mcp__herd",
+      "mcp__context7",
+      "WebSearch",
+      "Bash(composer:*)"
+    ]
+  },
+  "enabledMcpjsonServers": [
+    "herd",
+    "serena",
+    "jetbrains",
+    "context7"
+  ]
+}

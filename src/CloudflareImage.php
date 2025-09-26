@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Gwhthompson\CloudflareTransforms;
 
 use Gwhthompson\CloudflareTransforms\Enums\Fit;
@@ -14,7 +16,7 @@ use InvalidArgumentException;
 
 class CloudflareImage
 {
-    /** @var array<string,string> */
+    /** @var array<string, string> */
     private array $transforms = [];
 
     private function __construct(
@@ -125,11 +127,31 @@ class CloudflareImage
         ?string $disk = null,
         ?string $transformPath = null,
     ): self {
+        // Use Config::get() for graceful fallbacks instead of Config::string() which throws exceptions
+        $domain = $domain ?? Config::get('cloudflare-transforms.domain');
+        $disk = $disk ?? Config::get('cloudflare-transforms.disk') ?? config('filesystems.default') ?? 'public';
+        $transformPath = $transformPath ?? Config::get('cloudflare-transforms.transform_path', 'cdn-cgi/image');
+
+        // If no domain is configured, fall back to parsing the current APP_URL
+        if (! $domain) {
+            $appUrl = config('app.url', 'http://localhost');
+            if (is_string($appUrl)) {
+                $domain = parse_url($appUrl, PHP_URL_HOST) ?? 'localhost';
+            } else {
+                $domain = 'localhost';
+            }
+        }
+
+        // Ensure all required parameters are strings
+        $domain = is_string($domain) ? $domain : 'localhost';
+        $disk = is_string($disk) ? $disk : 'public';
+        $transformPath = is_string($transformPath) ? $transformPath : 'cdn-cgi/image';
+
         return new self(
             path: $path,
-            domain: $domain ?? Config::string('cloudflare-transforms.domain'),
-            disk: $disk ?? Config::string('cloudflare-transforms.disk', 'public'),
-            transformPath: $transformPath ?? Config::string('cloudflare-transforms.transform_path', 'cdn-cgi/image'),
+            domain: $domain,
+            disk: $disk,
+            transformPath: $transformPath,
         );
     }
 
