@@ -22,11 +22,11 @@ beforeEach(function () {
 
 describe('CloudflareImage creation', function () {
     it('can create instance with static make method')
-        ->expect(fn() => CloudflareImage::make('test.jpg'))
+        ->expect(fn () => CloudflareImage::make('test.jpg'))
         ->toBeInstanceOf(CloudflareImage::class);
 
     it('can be cast to string')
-        ->expect(fn() => (string)CloudflareImage::make('test.jpg')->width(300))
+        ->expect(fn () => (string) CloudflareImage::make('test.jpg')->width(300))
         ->toBe('https://example.cloudflare.com/cdn-cgi/image/w=300/test.jpg');
 
     it('supports fluent interface chaining', function () {
@@ -43,15 +43,15 @@ describe('CloudflareImage creation', function () {
 
 describe('URL generation', function () {
     it('generates basic URL without transformations')
-        ->expect(fn() => CloudflareImage::make('test.jpg')->url())
+        ->expect(fn () => CloudflareImage::make('test.jpg')->url())
         ->toBe('https://example.cloudflare.com/test.jpg');
 
     it('generates URL with single transformation')
-        ->expect(fn() => CloudflareImage::make('test.jpg')->width(300)->url())
+        ->expect(fn () => CloudflareImage::make('test.jpg')->width(300)->url())
         ->toBe('https://example.cloudflare.com/cdn-cgi/image/w=300/test.jpg');
 
     it('generates URL with multiple transformations')
-        ->expect(fn() => CloudflareImage::make('test.jpg')
+        ->expect(fn () => CloudflareImage::make('test.jpg')
             ->width(300)
             ->height(200)
             ->format(Format::Webp)
@@ -71,16 +71,16 @@ describe('URL generation', function () {
 
 describe('parameter validation', function () {
     it('validates parameter ranges', function (string $method, mixed $value, string $expectedMessage) {
-        expect(fn() => CloudflareImage::make('test.jpg')->$method($value))
+        expect(fn () => CloudflareImage::make('test.jpg')->$method($value))
             ->toThrow(InvalidArgumentException::class, $expectedMessage);
     })->with('validation_ranges');
 
     it('validates trim border parameters', function (int $value, string $expectedMessage) {
         if (str_contains(strtolower($expectedMessage), 'tolerance')) {
-            expect(fn() => CloudflareImage::make('test.jpg')->trimBorder(tolerance: $value))
+            expect(fn () => CloudflareImage::make('test.jpg')->trimBorder(tolerance: $value))
                 ->toThrow(InvalidArgumentException::class, $expectedMessage);
         } else {
-            expect(fn() => CloudflareImage::make('test.jpg')->trimBorder(keep: $value))
+            expect(fn () => CloudflareImage::make('test.jpg')->trimBorder(keep: $value))
                 ->toThrow(InvalidArgumentException::class, $expectedMessage);
         }
     })->with('trim_border_validation');
@@ -90,7 +90,7 @@ describe('parameter validation', function () {
             $url = CloudflareImage::make('test.jpg')->gravity($gravity)->url();
             expect($url)->toContain("gravity={$gravity}");
         } else {
-            expect(fn() => CloudflareImage::make('test.jpg')->gravity($gravity))
+            expect(fn () => CloudflareImage::make('test.jpg')->gravity($gravity))
                 ->toThrow(InvalidArgumentException::class, 'Invalid gravity');
         }
     })->with('gravity_coordinates');
@@ -98,7 +98,7 @@ describe('parameter validation', function () {
 
 describe('special cases', function () {
     it('handles gravity with enum')
-        ->expect(fn() => CloudflareImage::make('test.jpg')->gravity(Gravity::Face)->url())
+        ->expect(fn () => CloudflareImage::make('test.jpg')->gravity(Gravity::Face)->url())
         ->toContain('gravity=face');
 
     it('handles special encoding cases', function (mixed $value, string $expected) {
@@ -126,7 +126,7 @@ describe('special cases', function () {
 
 describe('path validation', function () {
     it('validates paths', function (string $path, string $expectedMessage) {
-        expect(fn() => CloudflareImage::make($path)->url())
+        expect(fn () => CloudflareImage::make($path)->url())
             ->toThrow(InvalidArgumentException::class, $expectedMessage);
     })->with('invalid_paths');
 });

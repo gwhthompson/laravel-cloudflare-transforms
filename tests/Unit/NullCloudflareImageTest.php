@@ -11,7 +11,7 @@ describe('NullCloudflareImage', function () {
     });
 
     it('returns original URL when cast to string', function () {
-        expect((string)$this->nullImage)->toBe($this->originalUrl);
+        expect((string) $this->nullImage)->toBe($this->originalUrl);
     });
 
     it('returns original URL from url method', function () {

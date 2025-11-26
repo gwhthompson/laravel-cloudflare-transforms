@@ -50,7 +50,7 @@ describe('Enum integration with CloudflareImage', function () {
     })->with('enum_transformations');
 
     it('can combine all enum types')
-        ->expect(fn() => CloudflareImage::make('test.jpg')
+        ->expect(fn () => CloudflareImage::make('test.jpg')
             ->fit(Fit::Cover)
             ->format(Format::Webp)
             ->quality(Quality::High)
@@ -66,7 +66,7 @@ describe('Enum integration with CloudflareImage', function () {
         ->toContain('metadata=none');
 
     it('can mix enums with scalar values')
-        ->expect(fn() => CloudflareImage::make('test.jpg')
+        ->expect(fn () => CloudflareImage::make('test.jpg')
             ->width(300)
             ->fit(Fit::Crop)
             ->quality(85)

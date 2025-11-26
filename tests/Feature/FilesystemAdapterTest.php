@@ -4,21 +4,22 @@ declare(strict_types=1);
 
 use Gwhthompson\CloudflareTransforms\CloudflareFilesystemAdapter;
 use Gwhthompson\CloudflareTransforms\CloudflareImage;
-use Gwhthompson\CloudflareTransforms\Enums\Fit;
 use Gwhthompson\CloudflareTransforms\Enums\Format;
 use Illuminate\Support\Facades\Storage;
+use League\Flysystem\AwsS3V3\AwsS3V3Adapter;
+use League\Flysystem\Filesystem;
 
 describe('CloudflareFilesystemAdapter', function () {
     beforeEach(function () {
         $this->domain = 'example.cloudflare.com';
         $this->config = [
-            'cloudflareDomain' => $this->domain,
+            'cloudflare_domain' => $this->domain,
             'prefix' => null,
         ];
 
         // Create a mock filesystem and S3 adapter
-        $filesystem = Mockery::mock(\League\Flysystem\Filesystem::class);
-        $awsAdapter = Mockery::mock(\League\Flysystem\AwsS3V3\AwsS3V3Adapter::class);
+        $filesystem = Mockery::mock(Filesystem::class);
+        $awsAdapter = Mockery::mock(AwsS3V3Adapter::class);
 
         $this->adapter = new CloudflareFilesystemAdapter($filesystem, $awsAdapter, $this->config);
     });
@@ -31,8 +32,8 @@ describe('CloudflareFilesystemAdapter', function () {
 
         it('handles URL prefixes', function (?string $prefix, string $expected) {
             $config = array_merge($this->config, ['prefix' => $prefix]);
-            $filesystem = Mockery::mock(\League\Flysystem\Filesystem::class);
-            $awsAdapter = Mockery::mock(\League\Flysystem\AwsS3V3\AwsS3V3Adapter::class);
+            $filesystem = Mockery::mock(Filesystem::class);
+            $awsAdapter = Mockery::mock(AwsS3V3Adapter::class);
             $adapter = new CloudflareFilesystemAdapter($filesystem, $awsAdapter, $config);
 
             expect($adapter->url('test.jpg'))->toBe("https://{$this->domain}/{$expected}");
@@ -117,12 +118,12 @@ describe('CloudflareFilesystemAdapter integration', function () {
         config([
             'cloudflare-transforms.domain' => 'integration.cloudflare.com',
             'filesystems.disks.cloudflare-test' => [
-                'driver' => 'cloudflare-s3',
+                'driver' => 's3',
                 'key' => 'test-key',
                 'secret' => 'test-secret',
                 'region' => 'us-east-1',
                 'bucket' => 'test-bucket',
-                'cloudflareDomain' => 'integration.cloudflare.com',
+                'cloudflare_domain' => 'integration.cloudflare.com',
             ],
         ]);
     });

@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Gwhthompson\CloudflareTransforms;
 
-use Override;
 use Gwhthompson\CloudflareTransforms\Enums\Fit;
 use Gwhthompson\CloudflareTransforms\Enums\Format;
 use Gwhthompson\CloudflareTransforms\Enums\Quality;
 use Illuminate\Filesystem\FilesystemAdapter;
 use League\Flysystem\FilesystemAdapter as FlysystemAdapter;
 use League\Flysystem\FilesystemOperator;
+use Override;
 
 /**
  * Laravel FilesystemAdapter that provides Cloudflare-specific URL generation.
@@ -24,9 +24,7 @@ class CloudflareFilesystemAdapter extends FilesystemAdapter
 
     protected string $cloudflareDomain;
 
-    /**
-     * @param array<string, mixed> $config
-     */
+    /** @param array<string, mixed> $config */
     public function __construct(
         FilesystemOperator $driver,
         FlysystemAdapter $adapter,
@@ -41,9 +39,7 @@ class CloudflareFilesystemAdapter extends FilesystemAdapter
         $this->autoTransform = is_bool($autoTransform) ? $autoTransform : true;
     }
 
-    /**
-     * Create a CloudflareImage builder for fluent transformation.
-     */
+    /** Create a CloudflareImage builder for fluent transformation. */
     public function image(string $path): CloudflareImage
     {
         return CloudflareImage::make($path, $this->cloudflareDomain);
@@ -84,13 +80,19 @@ class CloudflareFilesystemAdapter extends FilesystemAdapter
 
     /**
      * Get the URL for the file at the given path.
-     * Automatically returns Cloudflare URL.
+     * Returns Cloudflare URL when cloudflare_domain is configured,
+     * otherwise falls back to standard S3 URL generation.
      */
     #[Override]
     public function url($path): string
     {
         if (isset($this->config['prefix'])) {
             $path = $this->concatPathToUrl($this->config['prefix'], $path);
+        }
+
+        // Fallback to standard S3 URL if no Cloudflare domain configured
+        if ($this->cloudflareDomain === '') {
+            return parent::url($path);
         }
 
         return "https://{$this->cloudflareDomain}/{$path}";

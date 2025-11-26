@@ -12,9 +12,7 @@ use Stringable;
  */
 class NullCloudflareImage implements Stringable
 {
-    public function __construct(private readonly string $originalUrl)
-    {
-    }
+    public function __construct(private readonly string $originalUrl) {}
 
     /**
      * Return the original URL for any transformation attempt.

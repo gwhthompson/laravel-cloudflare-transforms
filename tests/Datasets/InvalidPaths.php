@@ -11,15 +11,15 @@ dataset('invalid_paths', [
 dataset('transformation_combinations', [
     'basic_resize' => [
         ['width' => 300, 'height' => 200],
-        'w=300,h=200'
+        'w=300,h=200',
     ],
     'resize_with_format' => [
         ['width' => 300],
-        'w=300'
+        'w=300',
     ],
     'full_transform' => [
         ['width' => 300, 'height' => 200, 'quality' => 85],
-        'w=300,h=200,q=85'
+        'w=300,h=200,q=85',
     ],
 ]);
 

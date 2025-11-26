@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Gwhthompson\CloudflareTransforms;
 
-use Override;
 use Aws\S3\S3Client;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Filesystem\FilesystemAdapter;
@@ -13,6 +12,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\ServiceProvider;
 use League\Flysystem\AwsS3V3\AwsS3V3Adapter;
 use League\Flysystem\Filesystem;
+use Override;
 
 class CloudflareTransformsServiceProvider extends ServiceProvider
 {
@@ -36,10 +36,16 @@ class CloudflareTransformsServiceProvider extends ServiceProvider
         );
     }
 
-    /** Register the cloudflare-s3 driver for S3-compatible storage with Cloudflare URLs. */
+    /**
+     * Register as 's3' driver - this overrides Laravel's built-in S3 driver.
+     *
+     * Safe because CloudflareFilesystemAdapter is a superset:
+     * - Uses AwsS3V3Adapter under the hood
+     * - Falls back to standard S3 behavior when cloudflare_domain not set
+     */
     protected function registerCloudflareDriver(): void
     {
-        Storage::extend('cloudflare-s3', function (Application $application, array $config): CloudflareFilesystemAdapter {
+        Storage::extend('s3', function (Application $application, array $config): CloudflareFilesystemAdapter {
             // Create S3 client (works with Backblaze B2 and other S3-compatible services)
             $s3Client = new S3Client([
                 'credentials' => [

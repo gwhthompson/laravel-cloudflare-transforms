@@ -4,21 +4,21 @@ declare(strict_types=1);
 
 use Gwhthompson\CloudflareTransforms\CloudflareFilesystemAdapter;
 use Gwhthompson\CloudflareTransforms\CloudflareImage;
+use Gwhthompson\CloudflareTransforms\CloudflareTransformsServiceProvider;
 use Gwhthompson\CloudflareTransforms\Enums\Format;
 use Gwhthompson\CloudflareTransforms\NullCloudflareImage;
-use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Support\Facades\Storage;
 
 describe('CloudflareTransformsServiceProvider', function () {
     describe('driver registration', function () {
-        it('registers cloudflare-s3 driver', function () {
+        it('registers s3 driver', function () {
             config(['filesystems.disks.test-driver' => [
-                'driver' => 'cloudflare-s3',
+                'driver' => 's3',
                 'key' => 'test-key',
                 'secret' => 'test-secret',
                 'region' => 'us-east-1',
                 'bucket' => 'test-bucket',
-                'cloudflareDomain' => 'test.cloudflare.com',
+                'cloudflare_domain' => 'test.cloudflare.com',
             ]]);
 
             expect(function () {
@@ -28,12 +28,12 @@ describe('CloudflareTransformsServiceProvider', function () {
 
         it('creates CloudflareFilesystemAdapter instance', function () {
             config(['filesystems.disks.test-cloudflare' => [
-                'driver' => 'cloudflare-s3',
+                'driver' => 's3',
                 'key' => 'test-key',
                 'secret' => 'test-secret',
                 'region' => 'us-east-1',
                 'bucket' => 'test-bucket',
-                'cloudflareDomain' => 'test.cloudflare.com',
+                'cloudflare_domain' => 'test.cloudflare.com',
             ]]);
 
             $disk = Storage::disk('test-cloudflare');
@@ -48,12 +48,12 @@ describe('CloudflareTransformsServiceProvider', function () {
 
             // Create a Cloudflare disk for testing
             config(['filesystems.disks.cloudflare-test' => [
-                'driver' => 'cloudflare-s3',
+                'driver' => 's3',
                 'key' => 'test-key',
                 'secret' => 'test-secret',
                 'region' => 'us-east-1',
                 'bucket' => 'test-bucket',
-                'cloudflareDomain' => 'test.cloudflare.com',
+                'cloudflare_domain' => 'test.cloudflare.com',
             ]]);
         });
 
@@ -84,7 +84,7 @@ describe('CloudflareTransformsServiceProvider', function () {
         describe('image macro', function () {
             it('exists on FilesystemAdapter', function () {
                 $disk = Storage::disk('public');
-                expect($disk->image('test.jpg'))->toBeInstanceOf(\Gwhthompson\CloudflareTransforms\NullCloudflareImage::class);
+                expect($disk->image('test.jpg'))->toBeInstanceOf(NullCloudflareImage::class);
             });
 
             it('returns CloudflareImage on Cloudflare disk', function () {
@@ -137,7 +137,7 @@ describe('CloudflareTransformsServiceProvider', function () {
         it('registers package information', function () {
             // This is harder to test directly, but we can verify the service provider
             // has the registerAboutCommand method
-            $provider = new \Gwhthompson\CloudflareTransforms\CloudflareTransformsServiceProvider(app());
+            $provider = new CloudflareTransformsServiceProvider(app());
             expect(method_exists($provider, 'registerAboutCommand'))->toBeTrue();
         });
     });

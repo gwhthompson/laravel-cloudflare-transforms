@@ -1,8 +1,9 @@
 <?php
 
 declare(strict_types=1);
+use Gwhthompson\CloudflareTransforms\Tests\TestCase;
 
-uses(Gwhthompson\CloudflareTransforms\Tests\TestCase::class)->in('Feature');
+uses(TestCase::class)->in('Feature');
 
 // Unit tests also need Laravel's TestCase for CloudflareImage config access
-uses(Gwhthompson\CloudflareTransforms\Tests\TestCase::class)->in('Unit');
+uses(TestCase::class)->in('Unit');
