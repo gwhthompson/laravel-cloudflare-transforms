@@ -24,7 +24,7 @@ return [
     | disk is explicitly specified. This should match your configured disk name.
     |
     */
-    'disk' => env('CLOUDFLARE_TRANSFORMS_DISK', 'public'),
+    'disk' => env('CLOUDFLARE_TRANSFORMS_DISK', 's3'),
 
     /*
     |--------------------------------------------------------------------------

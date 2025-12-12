@@ -2,13 +2,18 @@
 
 A Laravel package for generating Cloudflare Image Transformation URLs with a fluent API.
 
+## Prerequisites
+
+This package requires [Cloudflare Image Transformations](https://developers.cloudflare.com/images/transform-images/) enabled on your zone:
+
+1. Add your domain to Cloudflare
+2. In Cloudflare dashboard: **Images** → **Transformations** → **Enable for zone**
+
 ## Installation
 
 ```bash
 composer require gwhthompson/laravel-cloudflare-transforms
 ```
-
-## Configuration
 
 Publish the configuration file:
 
@@ -16,20 +21,27 @@ Publish the configuration file:
 php artisan vendor:publish --provider="Gwhthompson\CloudflareTransforms\CloudflareTransformsServiceProvider"
 ```
 
-Configure your environment variables:
+## Configuration
 
-```env
-CLOUDFLARE_TRANSFORMS_DOMAIN=your-cdn-domain.com
+Add `cloudflare_domain` to your S3 disk in `config/filesystems.php`:
+
+```php
+'s3' => [
+    'driver' => 's3',
+    'key' => env('AWS_ACCESS_KEY_ID'),
+    'secret' => env('AWS_SECRET_ACCESS_KEY'),
+    'region' => env('AWS_DEFAULT_REGION'),
+    'bucket' => env('AWS_BUCKET'),
+    'endpoint' => env('AWS_ENDPOINT'),
+    'cloudflare_domain' => env('CLOUDFLARE_TRANSFORMS_DOMAIN'),
+],
 ```
 
-### Configuration Options
+Set your Cloudflare zone domain in `.env`:
 
-| Option | Description | Default |
-|--------|-------------|---------|
-| `domain` | Cloudflare CDN domain | Required |
-| `disk` | Default storage disk | `public` |
-| `transform_path` | Transformation URL path | `cdn-cgi/image` |
-| `auto_transform.enabled` | Enable auto transformations | `true` |
+```env
+CLOUDFLARE_TRANSFORMS_DOMAIN=cdn.example.com
+```
 
 ## Usage
 
@@ -37,87 +49,47 @@ CLOUDFLARE_TRANSFORMS_DOMAIN=your-cdn-domain.com
 
 ```php
 use Gwhthompson\CloudflareTransforms\CloudflareImage;
+use Gwhthompson\CloudflareTransforms\Enums\Format;
 
-$image = CloudflareImage::make('uploads/photo.jpg')
+$url = CloudflareImage::make('photo.jpg')
     ->width(300)
     ->height(200)
-    ->format('webp')
-    ->quality(80);
+    ->format(Format::Webp)
+    ->quality(80)
+    ->url();
 
-echo $image->url();
-// https://your-cdn.com/cdn-cgi/image/width=300,height=200,format=webp,quality=80/uploads/photo.jpg
+// https://cdn.example.com/cdn-cgi/image/w=300,h=200,f=webp,q=80/photo.jpg
 ```
 
 ### Storage Integration
 
 ```php
 use Illuminate\Support\Facades\Storage;
+use Gwhthompson\CloudflareTransforms\Enums\Fit;
+use Gwhthompson\CloudflareTransforms\Enums\Format;
 
-// Using the image() macro
-$image = Storage::disk('cloudflare')->image('photo.jpg')
+// Fluent API
+$url = Storage::disk('s3')->image('photo.jpg')
     ->width(400)
-    ->fit('cover');
+    ->fit(Fit::Cover)
+    ->format(Format::Auto)
+    ->url();
 
-// Using the cloudflareUrl() macro
-$url = Storage::disk('cloudflare')->cloudflareUrl('photo.jpg', [
+// Array-based API
+$url = Storage::disk('s3')->cloudflareUrl('photo.jpg', [
     'width' => 400,
-    'height' => 300
+    'height' => 300,
 ]);
 ```
 
-### Filesystem Configuration
-
-Add an S3 disk with Cloudflare support to your `config/filesystems.php`:
-
-```php
-'cloudflare' => [
-    'driver' => 's3',  // Standard S3 driver - package enhances it automatically
-    'key' => env('AWS_ACCESS_KEY_ID'),
-    'secret' => env('AWS_SECRET_ACCESS_KEY'),
-    'region' => env('AWS_DEFAULT_REGION'),
-    'bucket' => env('AWS_BUCKET'),
-    'endpoint' => env('AWS_ENDPOINT'),
-    // Cloudflare-specific (optional - enables CDN URLs)
-    'cloudflare_domain' => env('CLOUDFLARE_TRANSFORMS_DOMAIN'),
-],
-```
-
-**Note:** When `cloudflare_domain` is set, `url()` returns Cloudflare CDN URLs. When not set, it falls back to standard S3 URL generation.
-
 ## How It Works
 
-This package registers as the `s3` driver, making it a **superset** of Laravel's built-in S3 driver:
+This package extends Laravel's `s3` driver to add Cloudflare CDN URL generation:
 
 - Uses `AwsS3V3Adapter` under the hood for full S3 compatibility
-- Falls back to standard S3 behavior when `cloudflare_domain` is not configured
-- Automatically returns Cloudflare CDN URLs when `cloudflare_domain` is set
-- Works seamlessly with Filament, Livewire, and all S3-aware Laravel code
-
-## Upgrading
-
-### From v1.x to v2.x
-
-The package now registers as the standard `s3` driver instead of a custom `cloudflare-s3` driver.
-
-**Before (v1.x):**
-```php
-'cloudflare' => [
-    'driver' => 'cloudflare-s3',  // Custom driver name
-    'cloudflare_domain' => env('CLOUDFLARE_TRANSFORMS_DOMAIN'),
-    // ...
-],
-```
-
-**After (v2.x):**
-```php
-'cloudflare' => [
-    'driver' => 's3',  // Standard S3 driver
-    'cloudflare_domain' => env('CLOUDFLARE_TRANSFORMS_DOMAIN'),
-    // ...
-],
-```
-
-This change ensures compatibility with all Laravel packages that check for `driver === 's3'`.
+- Returns Cloudflare CDN URLs when `cloudflare_domain` is configured
+- Falls back to standard S3 URLs when `cloudflare_domain` is not set
+- Works with Filament, Livewire, and all Laravel packages expecting an S3 driver
 
 ## Testing
 
