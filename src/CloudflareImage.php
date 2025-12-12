@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Gwhthompson\CloudflareTransforms;
 
+use Gwhthompson\CloudflareTransforms\Contracts\CloudflareImageContract;
 use Gwhthompson\CloudflareTransforms\Enums\Fit;
 use Gwhthompson\CloudflareTransforms\Enums\Flip;
 use Gwhthompson\CloudflareTransforms\Enums\Format;
@@ -13,15 +14,16 @@ use Gwhthompson\CloudflareTransforms\Enums\Quality;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Storage;
 use InvalidArgumentException;
-use Stringable;
 
 /**
  * Fluent API builder for constructing Cloudflare Image Transformation URLs.
  *
  * Provides chainable methods for all Cloudflare image transformation parameters
  * (width, height, format, quality, fit, etc.) and generates the final transformed URL.
+ *
+ * @see https://developers.cloudflare.com/images/transform-images/transform-via-url/
  */
-class CloudflareImage implements Stringable
+class CloudflareImage implements CloudflareImageContract
 {
     /** @var array<string, string> */
     private array $transforms = [];
@@ -31,6 +33,7 @@ class CloudflareImage implements Stringable
         private readonly string $domain,
         private readonly string $disk,
         private readonly string $transformPath,
+        private readonly bool $validateExists = true,
     ) {}
 
     public function __toString(): string
@@ -141,34 +144,45 @@ class CloudflareImage implements Stringable
             : throw new InvalidArgumentException('Height must be 1-12,000');
     }
 
-    /** Create a new CloudflareImage instance. */
+    /**
+     * Create a new CloudflareImage instance.
+     *
+     * @param  bool|null  $validateExists  Whether to check file exists before generating URL (default: from config)
+     */
     public static function make(
         string $path,
         ?string $domain = null,
         ?string $disk = null,
         ?string $transformPath = null,
+        ?bool $validateExists = null,
     ): self {
-        // Use Config::get() for graceful fallbacks instead of Config::string() which throws exceptions
-        $domain ??= Config::get('cloudflare-transforms.domain');
-        $disk ??= Config::get('cloudflare-transforms.disk') ?? config('filesystems.default', 'public');
-        $transformPath ??= Config::get('cloudflare-transforms.transform_path', 'cdn-cgi/image');
+        // Type-safe config access with proper narrowing for PHPStan level 9
+        $domainConfig = Config::get('cloudflare-transforms.domain', '');
+        $domain ??= is_string($domainConfig) ? $domainConfig : '';
+
+        $diskConfig = Config::get('cloudflare-transforms.disk') ?? Config::get('filesystems.default', 'public');
+        $disk ??= is_string($diskConfig) ? $diskConfig : 'public';
+
+        $pathConfig = Config::get('cloudflare-transforms.transform_path', 'cdn-cgi/image');
+        $transformPath ??= is_string($pathConfig) ? $pathConfig : 'cdn-cgi/image';
+
+        $validateConfig = Config::get('cloudflare-transforms.validate_file_exists', true);
+        $validateExists ??= is_bool($validateConfig) ? $validateConfig : true;
 
         // If no domain is configured, fall back to parsing the current APP_URL
-        if (! $domain) {
-            $appUrl = config('app.url', 'http://localhost');
-            $domain = is_string($appUrl) ? parse_url($appUrl, PHP_URL_HOST) ?? 'localhost' : 'localhost';
+        if ($domain === '') {
+            $appUrlConfig = Config::get('app.url', 'http://localhost');
+            $appUrl = is_string($appUrlConfig) ? $appUrlConfig : 'http://localhost';
+            $parsedHost = parse_url($appUrl, PHP_URL_HOST);
+            $domain = is_string($parsedHost) ? $parsedHost : 'localhost';
         }
-
-        // Ensure all required parameters are strings
-        $domain = is_string($domain) ? $domain : 'localhost';
-        $disk = is_string($disk) ? $disk : 'public';
-        $transformPath = is_string($transformPath) ? $transformPath : 'cdn-cgi/image';
 
         return new self(
             path: $path,
             domain: $domain,
             disk: $disk,
             transformPath: $transformPath,
+            validateExists: $validateExists,
         );
     }
 
@@ -232,6 +246,10 @@ class CloudflareImage implements Stringable
 
     public function trim(int $top = 0, int $right = 0, int $bottom = 0, int $left = 0): self
     {
+        if ($top < 0 || $right < 0 || $bottom < 0 || $left < 0) {
+            throw new InvalidArgumentException('Trim values must be non-negative');
+        }
+
         return $this->with('trim', "{$top};{$right};{$bottom};{$left}");
     }
 
@@ -265,11 +283,14 @@ class CloudflareImage implements Stringable
     /** Generate the final Cloudflare transformation URL. */
     public function url(): string
     {
-        if ($this->path === '' || $this->path === '0' || str_contains($this->path, '..')) {
+        // Validate path - check both raw and URL-decoded for traversal attempts
+        $decodedPath = urldecode($this->path);
+        if ($this->path === '' || $this->path === '0' || str_contains($this->path, '..') || str_contains($decodedPath, '..')) {
             throw new InvalidArgumentException('Invalid path');
         }
 
-        if (! Storage::disk($this->disk)->exists($this->path)) {
+        // Optional file existence check (can be disabled for performance)
+        if ($this->validateExists && ! Storage::disk($this->disk)->exists($this->path)) {
             throw new InvalidArgumentException("File does not exist: {$this->path}");
         }
 
@@ -297,6 +318,81 @@ class CloudflareImage implements Stringable
             ! ($zoom >= 0 && $zoom <= 1) => throw new InvalidArgumentException('Zoom must be 0-1'),
             ($this->transforms['gravity'] ?? null) !== 'face' => throw new InvalidArgumentException('Zoom requires gravity=face'),
             default => $this->with('zoom', $zoom)
+        };
+    }
+
+    /**
+     * Add a border around the image.
+     *
+     * Border is added after resizing and accounts for DPR.
+     * Use either $width for uniform border, or individual side parameters.
+     *
+     * @see https://developers.cloudflare.com/images/transform-images/transform-via-url/#border
+     */
+    public function border(
+        ?string $color = null,
+        ?int $width = null,
+        ?int $top = null,
+        ?int $right = null,
+        ?int $bottom = null,
+        ?int $left = null
+    ): self {
+        $parts = [];
+
+        if ($color !== null) {
+            $parts[] = "color:{$color}";
+        }
+
+        if ($width !== null) {
+            if ($width < 0) {
+                throw new InvalidArgumentException('Border width must be non-negative');
+            }
+            $parts[] = "width:{$width}";
+        }
+
+        // Individual sides (if any specified, use these instead of width)
+        $sides = ['top' => $top, 'right' => $right, 'bottom' => $bottom, 'left' => $left];
+        foreach ($sides as $side => $value) {
+            if ($value !== null) {
+                if ($value < 0) {
+                    throw new InvalidArgumentException("Border {$side} must be non-negative");
+                }
+                $parts[] = "{$side}:{$value}";
+            }
+        }
+
+        if ($parts === []) {
+            throw new InvalidArgumentException('Border requires at least one parameter');
+        }
+
+        return $this->with('border', implode('_', $parts));
+    }
+
+    /**
+     * Automatically isolate the subject by replacing background with transparency.
+     *
+     * @see https://developers.cloudflare.com/images/transform-images/transform-via-url/#segment
+     */
+    public function segment(string $mode = 'foreground'): self
+    {
+        return $mode === 'foreground'
+            ? $this->with('segment', $mode)
+            : throw new InvalidArgumentException('Segment must be "foreground"');
+    }
+
+    /**
+     * Alternative quality for slow network connections.
+     *
+     * Triggered when RTT >150ms, save-data enabled, ECT is 2g/3g, or downlink <5Mbps.
+     *
+     * @see https://developers.cloudflare.com/images/transform-images/transform-via-url/#slow-connection-quality
+     */
+    public function slowConnectionQuality(Quality|int $quality): self
+    {
+        return match (true) {
+            $quality instanceof Quality => $this->with('scq', $quality->value),
+            $quality >= 1 && $quality <= 100 => $this->with('scq', $quality),
+            default => throw new InvalidArgumentException('Slow connection quality must be 1-100 or Quality enum')
         };
     }
 

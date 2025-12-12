@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Gwhthompson\CloudflareTransforms;
 
-use Aws\S3\S3Client;
-use Illuminate\Contracts\Foundation\Application;
+use Gwhthompson\CloudflareTransforms\Contracts\CloudflareImageContract;
+use Gwhthompson\CloudflareTransforms\Enums\Fit;
+use Gwhthompson\CloudflareTransforms\Enums\Format;
+use Gwhthompson\CloudflareTransforms\Enums\Quality;
 use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Foundation\Console\AboutCommand;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\ServiceProvider;
-use League\Flysystem\AwsS3V3\AwsS3V3Adapter;
-use League\Flysystem\Filesystem;
+use JsonException;
 use Override;
 
 class CloudflareTransformsServiceProvider extends ServiceProvider
@@ -22,7 +22,6 @@ class CloudflareTransformsServiceProvider extends ServiceProvider
             __DIR__.'/config/cloudflare-transforms.php' => $this->app->configPath('cloudflare-transforms.php'),
         ], 'cloudflare-transforms-config');
 
-        $this->registerCloudflareDriver();
         $this->registerStorageMacros();
         $this->registerAboutCommand();
     }
@@ -37,56 +36,76 @@ class CloudflareTransformsServiceProvider extends ServiceProvider
     }
 
     /**
-     * Register as 's3' driver - this overrides Laravel's built-in S3 driver.
+     * Register Storage macros for transformation support on all FilesystemAdapter instances.
      *
-     * Safe because CloudflareFilesystemAdapter is a superset:
-     * - Uses AwsS3V3Adapter under the hood
-     * - Falls back to standard S3 behavior when cloudflare_domain not set
+     * Uses Laravel's built-in S3 driver with the standard 'url' config for CDN domains.
+     * No driver override needed - just adds image transformation methods.
      */
-    protected function registerCloudflareDriver(): void
+    protected function registerStorageMacros(): void
     {
-        Storage::extend('s3', function (Application $application, array $config): CloudflareFilesystemAdapter {
-            // Create S3 client (works with Backblaze B2 and other S3-compatible services)
-            $s3Client = new S3Client([
-                'credentials' => [
-                    'key' => $config['key'],
-                    'secret' => $config['secret'],
-                ],
-                'region' => $config['region'],
-                'version' => 'latest',
-                'endpoint' => $config['endpoint'] ?? null,
-                'use_path_style_endpoint' => $config['use_path_style_endpoint'] ?? false,
-            ]);
+        FilesystemAdapter::macro('image', function (string $path): CloudflareImageContract {
+            /** @var FilesystemAdapter $this */
+            $domain = CloudflareTransformsServiceProvider::extractDomain($this->getConfig());
 
-            $awsS3V3Adapter = new AwsS3V3Adapter($s3Client, $config['bucket']);
-            $filesystem = new Filesystem($awsS3V3Adapter, $config);
+            if ($domain === '') {
+                return new NullCloudflareImage($this->url($path));
+            }
 
-            // Return our custom adapter that handles Cloudflare URLs automatically
-            return new CloudflareFilesystemAdapter($filesystem, $awsS3V3Adapter, $config);
+            return CloudflareImage::make($path, $domain);
+        });
+
+        FilesystemAdapter::macro('cloudflareUrl', function (string $path, array $options = []): string {
+            /** @var FilesystemAdapter $this */
+            $domain = CloudflareTransformsServiceProvider::extractDomain($this->getConfig());
+
+            if ($domain === '') {
+                return $this->url($path);
+            }
+
+            $image = CloudflareImage::make($path, $domain);
+
+            // Apply transformations from options array
+            if (isset($options['width']) && is_int($options['width'])) {
+                $image->width($options['width']);
+            }
+
+            if (isset($options['height']) && is_int($options['height'])) {
+                $image->height($options['height']);
+            }
+
+            if (isset($options['format']) && $options['format'] instanceof Format) {
+                $image->format($options['format']);
+            }
+
+            if (isset($options['quality']) && (is_int($options['quality']) || $options['quality'] instanceof Quality)) {
+                $image->quality($options['quality']);
+            }
+
+            if (isset($options['fit']) && $options['fit'] instanceof Fit) {
+                $image->fit($options['fit']);
+            }
+
+            return $image->url();
         });
     }
 
-    /** Register Storage macros for transformation support on all FilesystemAdapter instances. */
-    protected function registerStorageMacros(): void
+    /**
+     * Extract Cloudflare domain from disk config or package config fallback.
+     *
+     * @param  array<array-key, mixed>  $config
+     */
+    public static function extractDomain(array $config): string
     {
-        // Add transformation methods to all FilesystemAdapter instances
-        FilesystemAdapter::macro('cloudflareUrl', function (string $path, array $options = []) {
-            if ($this instanceof CloudflareFilesystemAdapter) {
-                return $this->transformedUrl($path, $options);
-            }
+        $url = is_string($config['url'] ?? null) ? $config['url'] : '';
+        $domain = parse_url($url, PHP_URL_HOST);
 
-            // Fallback to regular URL for non-Cloudflare disks
-            return $this->url($path);
-        });
+        // Type-safe handling for parse_url which returns string|false|null
+        if ($domain === false || $domain === null) {
+            $fallback = config('cloudflare-transforms.domain');
+            $domain = is_string($fallback) ? $fallback : '';
+        }
 
-        FilesystemAdapter::macro('image', function (string $path): CloudflareImage|NullCloudflareImage {
-            if ($this instanceof CloudflareFilesystemAdapter) {
-                return $this->image($path);
-            }
-
-            // Return a null object that provides same API but returns regular URLs
-            return new NullCloudflareImage($this->url($path));
-        });
+        return $domain;
     }
 
     /** Register package information for the about command. */
@@ -94,22 +113,24 @@ class CloudflareTransformsServiceProvider extends ServiceProvider
     {
         AboutCommand::add('Cloudflare Transforms', function (): array {
             $composerFile = __DIR__.'/../composer.json';
-            $composerData = [];
 
-            if (is_readable($composerFile)) {
-                $content = file_get_contents($composerFile);
-                if (is_string($content)) {
-                    $decoded = json_decode($content, true);
-                    if (is_array($decoded)) {
-                        $composerData = $decoded;
-                    }
-                }
+            // Modern PHP 8.4 JSON handling with JSON_THROW_ON_ERROR
+            try {
+                /** @var array{version?: string} $composerData */
+                $composerData = json_decode(
+                    (string) file_get_contents($composerFile),
+                    associative: true,
+                    flags: JSON_THROW_ON_ERROR
+                );
+            } catch (JsonException) {
+                $composerData = [];
             }
 
             return [
                 'Version' => $composerData['version'] ?? 'unknown',
                 'Domain' => config('cloudflare-transforms.domain') ?: '<comment>Not configured</comment>',
                 'Transform Path' => config('cloudflare-transforms.transform_path', 'cdn-cgi/image'),
+                'File Validation' => config('cloudflare-transforms.validate_file_exists', true) ? 'Enabled' : 'Disabled',
             ];
         });
     }

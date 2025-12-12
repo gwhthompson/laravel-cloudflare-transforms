@@ -6,11 +6,18 @@ declare(strict_types=1);
 return [
     /*
     |--------------------------------------------------------------------------
-    | Cloudflare Transforms Domain
+    | Cloudflare Transforms Domain (Fallback)
     |--------------------------------------------------------------------------
     |
-    | The domain that serves your files through Cloudflare's CDN. This domain
-    | should have Cloudflare Image Transformations enabled.
+    | Fallback domain for CloudflareImage::make() when not using Storage macros.
+    |
+    | For Storage disks, configure the 'url' option in your filesystems.php:
+    |
+    |     's3' => [
+    |         'driver' => 's3',
+    |         'url' => env('CLOUDFLARE_CDN_URL'), // e.g., https://cdn.example.com
+    |         // ... other S3 options
+    |     ],
     |
     */
     'domain' => env('CLOUDFLARE_TRANSFORMS_DOMAIN'),
@@ -20,8 +27,8 @@ return [
     | Storage Disk
     |--------------------------------------------------------------------------
     |
-    | The default disk to use for CloudflareImage transformations when no
-    | disk is explicitly specified. This should match your configured disk name.
+    | The default disk to use for CloudflareImage file validation when using
+    | CloudflareImage::make() directly (not via Storage macros).
     |
     */
     'disk' => env('CLOUDFLARE_TRANSFORMS_DISK', 's3'),
@@ -39,15 +46,16 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Auto Transform Settings
+    | Validate File Exists
     |--------------------------------------------------------------------------
     |
-    | Configuration for automatic image transformations.
+    | When enabled, the package will check if the file exists in storage before
+    | generating the transformation URL. Disable this for better performance
+    | when you're confident files exist (e.g., high-traffic production sites).
+    |
+    | Note: Disabling this means broken image URLs won't be caught at generation
+    | time - they'll instead return Cloudflare errors at request time.
     |
     */
-    'auto_transform' => [
-        'enabled' => env('CLOUDFLARE_AUTO_TRANSFORM', true),
-        'default_format' => 'auto',
-        'default_quality' => 85,
-    ],
+    'validate_file_exists' => env('CLOUDFLARE_VALIDATE_FILE_EXISTS', true),
 ];

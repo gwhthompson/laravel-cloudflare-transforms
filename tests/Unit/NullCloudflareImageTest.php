@@ -2,12 +2,19 @@
 
 declare(strict_types=1);
 
+use Gwhthompson\CloudflareTransforms\Contracts\CloudflareImageContract;
+use Gwhthompson\CloudflareTransforms\Enums\Format;
+use Gwhthompson\CloudflareTransforms\Enums\Quality;
 use Gwhthompson\CloudflareTransforms\NullCloudflareImage;
 
 describe('NullCloudflareImage', function () {
     beforeEach(function () {
         $this->originalUrl = 'https://example.com/test.jpg';
         $this->nullImage = new NullCloudflareImage($this->originalUrl);
+    });
+
+    it('implements CloudflareImageContract', function () {
+        expect($this->nullImage)->toBeInstanceOf(CloudflareImageContract::class);
     });
 
     it('returns original URL when cast to string', function () {
@@ -38,30 +45,30 @@ describe('NullCloudflareImage', function () {
             ->url()->toBe($this->originalUrl);
     })->with('transformation_methods');
 
-    it('handles magic method calls for unknown methods', function () {
-        $result = $this->nullImage
-            ->unknownMethod('value')
-            ->anotherMethod(100)
-            ->chainedMethod('test', 200, true);
-
-        expect($result)
-            ->toBeInstanceOf(NullCloudflareImage::class)
-            ->url()->toBe($this->originalUrl);
-    });
-
     it('preserves original URL through extensive chaining', function () {
         $result = $this->nullImage
             ->width(300)
             ->height(200)
-            ->format('webp')
-            ->quality(85)
+            ->format(Format::Webp)
+            ->quality(Quality::High)
             ->blur(10)
             ->brightness(0.5)
             ->contrast(1.2)
             ->gamma(1.5)
-            ->nonExistentMethod('test')
-            ->anotherChain(100, true, 'string');
+            ->segment('foreground')
+            ->slowConnectionQuality(75);
 
         expect($result->url())->toBe($this->originalUrl);
+    });
+
+    it('supports all new Cloudflare parameters', function () {
+        $result = $this->nullImage
+            ->border('#000000', 10)
+            ->segment('foreground')
+            ->slowConnectionQuality(Quality::Low);
+
+        expect($result)
+            ->toBeInstanceOf(NullCloudflareImage::class)
+            ->url()->toBe($this->originalUrl);
     });
 });

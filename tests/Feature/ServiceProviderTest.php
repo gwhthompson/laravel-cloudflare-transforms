@@ -2,79 +2,100 @@
 
 declare(strict_types=1);
 
-use Gwhthompson\CloudflareTransforms\CloudflareFilesystemAdapter;
 use Gwhthompson\CloudflareTransforms\CloudflareImage;
 use Gwhthompson\CloudflareTransforms\CloudflareTransformsServiceProvider;
 use Gwhthompson\CloudflareTransforms\Enums\Format;
 use Gwhthompson\CloudflareTransforms\NullCloudflareImage;
+use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Support\Facades\Storage;
+use League\Flysystem\Filesystem;
+use League\Flysystem\Local\LocalFilesystemAdapter;
+
+/**
+ * Helper to create a FilesystemAdapter with specific config for testing.
+ *
+ * @param  array<string, mixed>  $config
+ */
+function createAdapter(array $config): FilesystemAdapter
+{
+    $localAdapter = new LocalFilesystemAdapter(sys_get_temp_dir());
+    $filesystem = new Filesystem($localAdapter, $config);
+
+    return new FilesystemAdapter($filesystem, $localAdapter, $config);
+}
 
 describe('CloudflareTransformsServiceProvider', function () {
-    describe('driver registration', function () {
-        it('registers s3 driver', function () {
-            config(['filesystems.disks.test-driver' => [
-                'driver' => 's3',
-                'key' => 'test-key',
-                'secret' => 'test-secret',
-                'region' => 'us-east-1',
-                'bucket' => 'test-bucket',
-                'cloudflare_domain' => 'test.cloudflare.com',
-            ]]);
-
-            expect(function () {
-                Storage::disk('test-driver');
-            })->not->toThrow(Exception::class);
+    describe('macro registration', function () {
+        it('registers image macro on FilesystemAdapter', function () {
+            expect(FilesystemAdapter::hasMacro('image'))->toBeTrue();
         });
 
-        it('creates CloudflareFilesystemAdapter instance', function () {
-            config(['filesystems.disks.test-cloudflare' => [
-                'driver' => 's3',
-                'key' => 'test-key',
-                'secret' => 'test-secret',
-                'region' => 'us-east-1',
-                'bucket' => 'test-bucket',
-                'cloudflare_domain' => 'test.cloudflare.com',
-            ]]);
+        it('registers cloudflareUrl macro on FilesystemAdapter', function () {
+            expect(FilesystemAdapter::hasMacro('cloudflareUrl'))->toBeTrue();
+        });
+    });
 
-            $disk = Storage::disk('test-cloudflare');
-            expect($disk)->toBeInstanceOf(CloudflareFilesystemAdapter::class);
+    describe('extractDomain helper', function () {
+        it('extracts domain from url config', function () {
+            $config = ['url' => 'https://cdn.example.com/storage'];
+            $domain = CloudflareTransformsServiceProvider::extractDomain($config);
+
+            expect($domain)->toBe('cdn.example.com');
+        });
+
+        it('returns empty string for config without url', function () {
+            config(['cloudflare-transforms.domain' => null]);
+
+            $config = ['driver' => 'local'];
+            $domain = CloudflareTransformsServiceProvider::extractDomain($config);
+
+            expect($domain)->toBe('');
+        });
+
+        it('falls back to global config when url not set', function () {
+            config(['cloudflare-transforms.domain' => 'fallback.example.com']);
+
+            $config = ['driver' => 'local'];
+            $domain = CloudflareTransformsServiceProvider::extractDomain($config);
+
+            expect($domain)->toBe('fallback.example.com');
+        });
+
+        it('handles malformed url config', function () {
+            config(['cloudflare-transforms.domain' => null]);
+
+            $config = ['url' => 'not-a-valid-url'];
+            $domain = CloudflareTransformsServiceProvider::extractDomain($config);
+
+            expect($domain)->toBe('');
         });
     });
 
     describe('Storage macros', function () {
         beforeEach(function () {
-            Storage::fake('public');
-            Storage::disk('public')->put('test.jpg', 'fake content');
-
-            // Create a Cloudflare disk for testing
-            config(['filesystems.disks.cloudflare-test' => [
-                'driver' => 's3',
-                'key' => 'test-key',
-                'secret' => 'test-secret',
-                'region' => 'us-east-1',
-                'bucket' => 'test-bucket',
-                'cloudflare_domain' => 'test.cloudflare.com',
-            ]]);
+            config(['cloudflare-transforms.domain' => null]);
+            config(['cloudflare-transforms.validate_file_exists' => false]);
         });
 
         describe('cloudflareUrl macro', function () {
-            it('exists on FilesystemAdapter', function () {
-                $disk = Storage::disk('public');
-                expect($disk->cloudflareUrl('test.jpg'))->toBeString();
+            it('returns string on any disk', function () {
+                $adapter = createAdapter([]);
+                $url = $adapter->cloudflareUrl('test.jpg');
+
+                expect($url)->toBeString();
             });
 
-            it('returns transformed URL on Cloudflare disk', function () {
-                $disk = Storage::disk('cloudflare-test');
+            it('applies transformations when url config present', function () {
+                $adapter = createAdapter(['url' => 'https://cdn.test.com']);
+                $url = $adapter->cloudflareUrl('test.jpg', ['width' => 300]);
 
-                if ($disk instanceof CloudflareFilesystemAdapter) {
-                    $url = $disk->cloudflareUrl('test.jpg', ['width' => 300]);
-                    expect($url)->toContain('w=300');
-                }
+                expect($url)->toContain('w=300');
+                expect($url)->toContain('cdn.test.com');
             });
 
-            it('returns regular URL on non-Cloudflare disk', function () {
-                $disk = Storage::disk('public');
-                $url = $disk->cloudflareUrl('test.jpg', ['width' => 300]);
+            it('returns regular URL when no url config', function () {
+                $adapter = createAdapter([]);
+                $url = $adapter->cloudflareUrl('test.jpg', ['width' => 300]);
 
                 expect($url)->toBeString();
                 expect($url)->not->toContain('w=300');
@@ -82,33 +103,28 @@ describe('CloudflareTransformsServiceProvider', function () {
         });
 
         describe('image macro', function () {
-            it('exists on FilesystemAdapter', function () {
-                $disk = Storage::disk('public');
-                expect($disk->image('test.jpg'))->toBeInstanceOf(NullCloudflareImage::class);
+            it('returns CloudflareImage when url config present', function () {
+                $adapter = createAdapter(['url' => 'https://cdn.test.com']);
+                $image = $adapter->image('test.jpg');
+
+                expect($image)->toBeInstanceOf(CloudflareImage::class);
             });
 
-            it('returns CloudflareImage on Cloudflare disk', function () {
-                $disk = Storage::disk('cloudflare-test');
-
-                if ($disk instanceof CloudflareFilesystemAdapter) {
-                    $image = $disk->image('test.jpg');
-                    expect($image)->toBeInstanceOf(CloudflareImage::class);
-                }
-            });
-
-            it('returns NullCloudflareImage on non-Cloudflare disk', function () {
-                $disk = Storage::disk('public');
-                $image = $disk->image('test.jpg');
+            it('returns NullCloudflareImage when no url config', function () {
+                $adapter = createAdapter([]);
+                $image = $adapter->image('test.jpg');
 
                 expect($image)->toBeInstanceOf(NullCloudflareImage::class);
             });
 
             it('NullCloudflareImage returns regular URL', function () {
-                $disk = Storage::disk('public');
-                $image = $disk->image('test.jpg');
+                $adapter = createAdapter([]);
+                $image = $adapter->image('test.jpg');
 
-                expect($image->width(300)->url())->toBeString();
-                expect($image->width(300)->url())->not->toContain('w=300');
+                $url = $image->width(300)->url();
+
+                expect($url)->toBeString();
+                expect($url)->not->toContain('w=300');
             });
         });
     });
@@ -125,18 +141,13 @@ describe('CloudflareTransformsServiceProvider', function () {
             expect(config('cloudflare-transforms.domain'))->toBe('custom.domain.com');
         });
 
-        it('has auto_transform config', function () {
-            expect(config('cloudflare-transforms.auto_transform'))->toBeArray();
-            expect(config('cloudflare-transforms.auto_transform.enabled'))->toBeTrue();
-            expect(config('cloudflare-transforms.auto_transform.default_format'))->toBe('auto');
-            expect(config('cloudflare-transforms.auto_transform.default_quality'))->toBe(85);
+        it('has validate_file_exists config', function () {
+            expect(config('cloudflare-transforms.validate_file_exists'))->toBeBool();
         });
     });
 
     describe('about command integration', function () {
         it('registers package information', function () {
-            // This is harder to test directly, but we can verify the service provider
-            // has the registerAboutCommand method
             $provider = new CloudflareTransformsServiceProvider(app());
             expect(method_exists($provider, 'registerAboutCommand'))->toBeTrue();
         });
@@ -159,17 +170,32 @@ describe('Package integration', function () {
             ->toEndWith('/test.jpg');
     });
 
-    it('works with Storage macros end-to-end', function () {
-        Storage::fake('public');
-        Storage::disk('public')->put('test.jpg', 'fake content');
+    it('works with Storage macros - NullCloudflareImage', function () {
+        config(['cloudflare-transforms.domain' => null]);
+        config(['cloudflare-transforms.validate_file_exists' => false]);
 
-        // Test regular disk returns NullCloudflareImage
-        $image = Storage::disk('public')->image('test.jpg');
+        $adapter = createAdapter([]);
+        $image = $adapter->image('test.jpg');
+
         expect($image)->toBeInstanceOf(NullCloudflareImage::class);
 
-        // Test that transformations are ignored
         $url = $image->width(300)->height(200)->url();
         expect($url)->not->toContain('w=300');
         expect($url)->not->toContain('h=200');
+    });
+
+    it('works with url config end-to-end', function () {
+        config(['cloudflare-transforms.validate_file_exists' => false]);
+
+        $adapter = createAdapter(['url' => 'https://cdn.e2e-test.com']);
+        $image = $adapter->image('test.jpg');
+
+        expect($image)->toBeInstanceOf(CloudflareImage::class);
+
+        $url = $image->width(300)->height(200)->url();
+        expect($url)
+            ->toContain('cdn.e2e-test.com')
+            ->toContain('w=300')
+            ->toContain('h=200');
     });
 });
