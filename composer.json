@@ -1,9 +1,16 @@
 {
   "$schema": "https://getcomposer.org/schema.json",
   "name": "gwhthompson/laravel-cloudflare-transforms",
+  "description": "Fluent API for Cloudflare Image Transformation URLs in Laravel",
   "type": "library",
   "license": "MIT",
   "version": "3.0.0",
+  "keywords": ["laravel", "cloudflare", "images", "cdn", "transformations"],
+  "authors": [
+    {
+      "name": "George Thompson"
+    }
+  ],
   "require": {
     "php": "^8.4",
     "illuminate/support": "^12.0",

@@ -115,7 +115,7 @@ class CloudflareImage implements CloudflareImageContract
             : throw new InvalidArgumentException('Gamma must be 0-2');
     }
 
-    /** Focal point for cropping when used with fit=cover or fit=crop. */
+    /** Focal point for cropping. Accepts Gravity enum or "XxY" coordinates (0.0-1.0). */
     public function gravity(Gravity|string $gravity): self
     {
         if ($gravity instanceof Gravity) {

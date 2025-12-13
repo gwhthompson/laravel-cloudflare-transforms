@@ -70,7 +70,7 @@ interface CloudflareImageContract extends Stringable
     /** Gamma correction. 1.0 = no change. */
     public function gamma(float $gamma): self;
 
-    /** Focal point for cropping when used with fit=cover or fit=crop. */
+    /** Focal point for cropping. Accepts Gravity enum or "XxY" coordinates (0.0-1.0). */
     public function gravity(Gravity|string $gravity): self;
 
     /** Convert image to grayscale. Convenience method for saturation(0). */

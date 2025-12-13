@@ -7,6 +7,14 @@
 
 Fluent API for Cloudflare Image Transformation URLs.
 
+## Features
+
+- Fluent, chainable API for all Cloudflare image transformations
+- Laravel Storage integration via macros
+- Type-safe enums for fit, format, quality, and gravity options
+- Graceful fallback on non-Cloudflare disks (returns original URL)
+- PHPStan level max strict typing
+
 ## Requirements
 
 - PHP 8.4+
@@ -34,6 +42,19 @@ Set your S3 disk's `url` to your Cloudflare CDN domain:
 
 The package extracts the domain from this URL automatically.
 
+Publish the config file for additional options:
+
+```bash
+php artisan vendor:publish --tag=cloudflare-transforms-config
+```
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `domain` | `null` | Fallback domain for `CloudflareImage::make()` |
+| `disk` | `s3` | Default storage disk for file validation |
+| `transform_path` | `cdn-cgi/image` | URL path for transformations |
+| `validate_file_exists` | `true` | Check file exists before generating URL |
+
 ## Usage
 
 ```php
@@ -50,6 +71,16 @@ CloudflareImage::make('photo.jpg')
     ->format(Format::Webp)
     ->url();
 // → https://cdn.example.com/cdn-cgi/image/w=300,h=200,f=webp/photo.jpg
+
+// Complete example with multiple transforms
+Storage::disk('s3')->image('hero.jpg')
+    ->width(1200)
+    ->height(630)
+    ->fit(Fit::Cover)
+    ->gravity(Gravity::Face)
+    ->format(Format::Auto)
+    ->quality(Quality::High)
+    ->url();
 
 // Array-based
 Storage::disk('s3')->cloudflareUrl('photo.jpg', ['width' => 400]);
