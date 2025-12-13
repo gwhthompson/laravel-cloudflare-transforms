@@ -1,5 +1,10 @@
 # Laravel Cloudflare Transforms
 
+[![Tests](https://github.com/gwhthompson/laravel-cloudflare-transforms/actions/workflows/tests.yml/badge.svg)](https://github.com/gwhthompson/laravel-cloudflare-transforms/actions/workflows/tests.yml)
+[![Latest Version](https://img.shields.io/packagist/v/gwhthompson/laravel-cloudflare-transforms.svg)](https://packagist.org/packages/gwhthompson/laravel-cloudflare-transforms)
+[![PHP Version](https://img.shields.io/packagist/php-v/gwhthompson/laravel-cloudflare-transforms.svg)](https://packagist.org/packages/gwhthompson/laravel-cloudflare-transforms)
+[![License](https://img.shields.io/packagist/l/gwhthompson/laravel-cloudflare-transforms.svg)](https://packagist.org/packages/gwhthompson/laravel-cloudflare-transforms)
+
 Fluent API for Cloudflare Image Transformation URLs.
 
 ## Requirements
