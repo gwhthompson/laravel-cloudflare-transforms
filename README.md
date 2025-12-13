@@ -55,13 +55,16 @@ CloudflareImage::make('photo.jpg')
 Storage::disk('s3')->cloudflareUrl('photo.jpg', ['width' => 400]);
 ```
 
-## Graceful Fallback
+## Transformations
 
-Disks without a `url` config return unmodified URLs (no transformations applied).
+All [Cloudflare Image Transformations](https://developers.cloudflare.com/images/transform-images/transform-via-url/) are supported via fluent methods.
 
-## Static Analysis
+Convenience methods for common patterns:
 
-Works automatically with [Larastan](https://github.com/larastan/larastan) - no configuration needed.
+- `optimize()` — format=auto + quality=high
+- `thumbnail(150)` — square crop at size
+- `responsive(400, 2)` — width + dpr + format=auto
+- `grayscale()` — removes color
 
 ## License
 
