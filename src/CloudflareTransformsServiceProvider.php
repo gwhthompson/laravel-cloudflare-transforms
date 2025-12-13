@@ -63,30 +63,30 @@ class CloudflareTransformsServiceProvider extends ServiceProvider
                 return $this->url($path);
             }
 
-            $image = CloudflareImage::make($path, $domain);
+            $cloudflareImage = CloudflareImage::make($path, $domain);
 
             // Apply transformations from options array
             if (isset($options['width']) && is_int($options['width'])) {
-                $image->width($options['width']);
+                $cloudflareImage->width($options['width']);
             }
 
             if (isset($options['height']) && is_int($options['height'])) {
-                $image->height($options['height']);
+                $cloudflareImage->height($options['height']);
             }
 
             if (isset($options['format']) && $options['format'] instanceof Format) {
-                $image->format($options['format']);
+                $cloudflareImage->format($options['format']);
             }
 
             if (isset($options['quality']) && (is_int($options['quality']) || $options['quality'] instanceof Quality)) {
-                $image->quality($options['quality']);
+                $cloudflareImage->quality($options['quality']);
             }
 
             if (isset($options['fit']) && $options['fit'] instanceof Fit) {
-                $image->fit($options['fit']);
+                $cloudflareImage->fit($options['fit']);
             }
 
-            return $image->url();
+            return $cloudflareImage->url();
         });
     }
 

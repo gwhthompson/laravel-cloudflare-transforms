@@ -343,6 +343,7 @@ class CloudflareImage implements CloudflareImageContract
             if ($width < 0) {
                 throw new InvalidArgumentException('Border width must be non-negative');
             }
+
             $parts[] = "width:{$width}";
         }
 
@@ -353,6 +354,7 @@ class CloudflareImage implements CloudflareImageContract
                 if ($value < 0) {
                     throw new InvalidArgumentException("Border {$side} must be non-negative");
                 }
+
                 $parts[] = "{$side}:{$value}";
             }
         }
