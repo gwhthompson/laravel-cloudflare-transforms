@@ -18,9 +18,9 @@ This is a Laravel package that generates Cloudflare Image Transformation URLs wi
 
 - **CloudflareImage** (`src/CloudflareImage.php`): Main fluent API builder for constructing Cloudflare transformation URLs. Contains chainable methods for all Cloudflare image transformation parameters (width, height, format, quality, fit, etc.). The `make()` static method creates instances, and `url()` generates the final transformed URL.
 
-- **CloudflareFilesystemAdapter** (`src/CloudflareFilesystemAdapter.php`): Extends Laravel's `FilesystemAdapter` to provide Cloudflare-specific URL generation. Overrides `url()` to return Cloudflare CDN URLs. Provides `image()` method for fluent transformation API and `transformedUrl()` for array-based options.
+- **CloudflareTransformsServiceProvider** (`src/CloudflareTransformsServiceProvider.php`): Registers Storage macros via `FilesystemAdapter::macro()`. The `image()` macro returns a `CloudflareImage` (or `NullCloudflareImage` for non-Cloudflare disks). The `cloudflareUrl()` macro provides array-based transformation options.
 
-- **CloudflareTransformsServiceProvider**: Registers the custom `cloudflare-s3` filesystem driver and adds Storage macros (`image()` and `cloudflareUrl()`).
+- **NullCloudflareImage** (`src/NullCloudflareImage.php`): Null object pattern implementation. Returns the original URL unchanged, allowing code to use the fluent API without conditional checks on non-Cloudflare disks.
 
 - **Enums** (`src/Enums/`): Type-safe enums for transformation parameters (Fit, Format, Quality, Gravity, Flip, Metadata).
 

@@ -206,11 +206,7 @@ class CloudflareImage implements CloudflareImageContract
     /** Quality for JPEG, WebP, and AVIF formats (1-100 or Quality enum). */
     public function quality(Quality|int $quality): self
     {
-        return match (true) {
-            $quality instanceof Quality => $this->with('q', $quality->value),
-            $quality >= 1 && $quality <= 100 => $this->with('q', $quality),
-            default => throw new InvalidArgumentException('Invalid quality')
-        };
+        return $this->validateAndSetQuality($quality, 'q');
     }
 
     public function responsive(int $width, float $dpr = 1): self
@@ -389,11 +385,7 @@ class CloudflareImage implements CloudflareImageContract
      */
     public function slowConnectionQuality(Quality|int $quality): self
     {
-        return match (true) {
-            $quality instanceof Quality => $this->with('scq', $quality->value),
-            $quality >= 1 && $quality <= 100 => $this->with('scq', $quality),
-            default => throw new InvalidArgumentException('Slow connection quality must be 1-100 or Quality enum')
-        };
+        return $this->validateAndSetQuality($quality, 'scq');
     }
 
     private function buildBaseUrl(): string
@@ -416,6 +408,15 @@ class CloudflareImage implements CloudflareImageContract
         return "https://{$this->domain}/{$this->transformPath}/"
             .implode(',', $options)
             ."/{$this->path}";
+    }
+
+    private function validateAndSetQuality(Quality|int $quality, string $key): self
+    {
+        return match (true) {
+            $quality instanceof Quality => $this->with($key, $quality->value),
+            $quality >= 1 && $quality <= 100 => $this->with($key, $quality),
+            default => throw new InvalidArgumentException('Quality must be 1-100 or Quality enum'),
+        };
     }
 
     private function with(string $key, mixed $value): self

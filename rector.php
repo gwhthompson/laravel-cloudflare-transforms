@@ -10,7 +10,6 @@ use RectorLaravel\Rector\ClassMethod\AddGenericReturnTypeToRelationsRector;
 use RectorLaravel\Rector\MethodCall\EloquentWhereTypeHintClosureParameterRector;
 use RectorLaravel\Set\LaravelLevelSetList;
 use RectorLaravel\Set\LaravelSetList;
-use RectorLaravel\Set\Packages\Livewire\LivewireSetList;
 
 return RectorConfig::configure()
     ->withPaths([
@@ -26,7 +25,6 @@ return RectorConfig::configure()
         LaravelSetList::LARAVEL_COLLECTION,
         LaravelLevelSetList::UP_TO_LARAVEL_120,
         LaravelSetList::LARAVEL_ARRAYACCESS_TO_METHOD_CALL,
-        LivewireSetList::LIVEWIRE_30,
     ])
     ->withPhpSets(php84: true)
     ->withAttributesSets()

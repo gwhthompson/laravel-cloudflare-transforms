@@ -10,6 +10,7 @@ use Gwhthompson\CloudflareTransforms\Enums\Format;
 use Gwhthompson\CloudflareTransforms\Enums\Quality;
 use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Foundation\Console\AboutCommand;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\ServiceProvider;
 use JsonException;
 use Override;
@@ -101,7 +102,7 @@ class CloudflareTransformsServiceProvider extends ServiceProvider
 
         // Type-safe handling for parse_url which returns string|false|null
         if ($domain === false || $domain === null) {
-            $fallback = config('cloudflare-transforms.domain');
+            $fallback = Config::get('cloudflare-transforms.domain');
             $domain = is_string($fallback) ? $fallback : '';
         }
 
@@ -126,11 +127,15 @@ class CloudflareTransformsServiceProvider extends ServiceProvider
                 $composerData = [];
             }
 
+            $domain = Config::get('cloudflare-transforms.domain');
+            $transformPath = Config::get('cloudflare-transforms.transform_path', 'cdn-cgi/image');
+            $validateExists = Config::get('cloudflare-transforms.validate_file_exists', true);
+
             return [
                 'Version' => $composerData['version'] ?? 'unknown',
-                'Domain' => config('cloudflare-transforms.domain') ?: '<comment>Not configured</comment>',
-                'Transform Path' => config('cloudflare-transforms.transform_path', 'cdn-cgi/image'),
-                'File Validation' => config('cloudflare-transforms.validate_file_exists', true) ? 'Enabled' : 'Disabled',
+                'Domain' => is_string($domain) && $domain !== '' ? $domain : '<comment>Not configured</comment>',
+                'Transform Path' => is_string($transformPath) ? $transformPath : 'cdn-cgi/image',
+                'File Validation' => (is_bool($validateExists) ? $validateExists : true) ? 'Enabled' : 'Disabled',
             ];
         });
     }
