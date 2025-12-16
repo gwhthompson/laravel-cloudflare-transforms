@@ -18,10 +18,13 @@ use Gwhthompson\CloudflareTransforms\Enums\Quality;
  * Implements the same contract as CloudflareImage but all transformation methods
  * are no-ops that return $this, and url() returns the original unmodified URL.
  * This allows code to use the fluent API without conditional checks.
+ *
+ * Note: This class intentionally skips validation - it's the null object pattern
+ * for graceful degradation on non-Cloudflare environments.
  */
-class NullCloudflareImage implements CloudflareImageContract
+final readonly class NullCloudflareImage implements CloudflareImageContract
 {
-    public function __construct(private readonly string $originalUrl) {}
+    public function __construct(private string $originalUrl) {}
 
     public function __toString(): string
     {
@@ -40,17 +43,6 @@ class NullCloudflareImage implements CloudflareImageContract
 
     public function blur(float $blur): self
     {
-        return $this;
-    }
-
-    public function border(
-        ?string $color = null,
-        ?int $width = null,
-        ?int $top = null,
-        ?int $right = null,
-        ?int $bottom = null,
-        ?int $left = null
-    ): self {
         return $this;
     }
 
@@ -157,6 +149,25 @@ class NullCloudflareImage implements CloudflareImageContract
     public function slowConnectionQuality(Quality|int $quality): self
     {
         return $this;
+    }
+
+    public function srcset(array $widths): string
+    {
+        if ($widths === []) {
+            return $this->originalUrl;
+        }
+
+        return collect($widths)
+            ->map(fn (int $w): string => $this->originalUrl." {$w}w")
+            ->implode(', ');
+    }
+
+    public function srcsetDensity(int $baseWidth): string
+    {
+        return implode(', ', [
+            $this->originalUrl.' 1x',
+            $this->originalUrl.' 2x',
+        ]);
     }
 
     public function thumbnail(int $size = 150): self

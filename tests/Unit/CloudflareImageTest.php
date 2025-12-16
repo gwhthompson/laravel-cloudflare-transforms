@@ -179,3 +179,101 @@ describe('enum integration', function () {
         expect($url)->toContain('w=300,fit=crop,q=85');
     });
 });
+
+describe('srcset generation', function () {
+    it('generates srcset with width descriptors', function () {
+        $srcset = CloudflareImage::make('test.jpg')
+            ->format(Format::Auto)
+            ->srcset([320, 640, 960]);
+
+        expect($srcset)
+            ->toContain('w=320')
+            ->toContain('f=auto')
+            ->toContain('test.jpg 320w')
+            ->toContain('test.jpg 640w')
+            ->toContain('test.jpg 960w');
+    });
+
+    it('generates srcset with density descriptors', function () {
+        $srcset = CloudflareImage::make('test.jpg')
+            ->format(Format::Auto)
+            ->srcsetDensity(480);
+
+        expect($srcset)
+            ->toContain('w=480')
+            ->toContain('w=960')
+            ->toContain('f=auto')
+            ->toContain('test.jpg 1x')
+            ->toContain('test.jpg 2x');
+    });
+
+    it('preserves other transforms in srcset', function () {
+        $srcset = CloudflareImage::make('test.jpg')
+            ->fit(Fit::Cover)
+            ->quality(Quality::High)
+            ->srcset([400, 800]);
+
+        expect($srcset)
+            ->toContain('fit=cover')
+            ->toContain('q=high')
+            ->toContain('w=400')
+            ->toContain('w=800')
+            ->toContain('test.jpg 400w')
+            ->toContain('test.jpg 800w');
+    });
+
+    it('handles srcset with single width', function () {
+        $srcset = CloudflareImage::make('test.jpg')->srcset([600]);
+
+        expect($srcset)->toBe('https://example.cloudflare.com/cdn-cgi/image/w=600/test.jpg 600w');
+    });
+
+    it('handles srcsetDensity with transforms', function () {
+        $srcset = CloudflareImage::make('test.jpg')
+            ->fit(Fit::Cover)
+            ->srcsetDensity(300);
+
+        expect($srcset)
+            ->toContain('fit=cover,w=300/test.jpg 1x')
+            ->toContain('fit=cover,w=600/test.jpg 2x');
+    });
+
+    it('overrides existing width in srcset', function () {
+        $srcset = CloudflareImage::make('test.jpg')
+            ->width(100)
+            ->srcset([200, 400]);
+
+        // Width should be overridden by srcset widths
+        expect($srcset)
+            ->toContain('w=200/test.jpg 200w')
+            ->toContain('w=400/test.jpg 400w')
+            ->not->toContain('w=100');
+    });
+
+    it('throws on empty srcset array', function () {
+        expect(fn () => CloudflareImage::make('test.jpg')->srcset([]))
+            ->toThrow(InvalidArgumentException::class, 'Srcset widths array cannot be empty');
+    });
+
+    it('validates width values in srcset', function () {
+        expect(fn () => CloudflareImage::make('test.jpg')->srcset([0, 300]))
+            ->toThrow(InvalidArgumentException::class, 'Width must be between 1 and 12,000');
+    });
+
+    it('validates srcsetDensity base width cannot exceed half of max', function () {
+        // Max is 12,000, so 2x of 7,000 = 14,000 exceeds max
+        expect(fn () => CloudflareImage::make('test.jpg')->srcsetDensity(7000))
+            ->toThrow(InvalidArgumentException::class, 'Base width must be between 1 and 6,000');
+    });
+
+    it('accepts srcsetDensity base width at max valid value', function () {
+        // Max is 12,000, so 2x of 6,000 = 12,000 is exactly at max
+        $srcset = CloudflareImage::make('test.jpg')->srcsetDensity(6000);
+
+        expect($srcset)
+            ->toContain('w=6000')
+            ->toContain('w=12000')
+            ->toContain('test.jpg 1x')
+            ->toContain('test.jpg 2x');
+    });
+});

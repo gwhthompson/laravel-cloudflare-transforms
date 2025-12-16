@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Gwhthompson\CloudflareTransforms;
 
+use Gwhthompson\CloudflareTransforms\Concerns\ValidatesTransformParameters;
 use Gwhthompson\CloudflareTransforms\Contracts\CloudflareImageContract;
 use Gwhthompson\CloudflareTransforms\Enums\Fit;
 use Gwhthompson\CloudflareTransforms\Enums\Flip;
@@ -23,8 +24,50 @@ use InvalidArgumentException;
  *
  * @see https://developers.cloudflare.com/images/transform-images/transform-via-url/
  */
-class CloudflareImage implements CloudflareImageContract
+final class CloudflareImage implements CloudflareImageContract
 {
+    use ValidatesTransformParameters;
+
+    // Dimension constraints (pixels)
+    private const int DIMENSION_MIN = 1;
+
+    private const int DIMENSION_MAX = 12_000;
+
+    // Blur radius constraints
+    private const float BLUR_MIN = 1.0;
+
+    private const float BLUR_MAX = 250.0;
+
+    // Image adjustment multipliers (brightness, contrast, gamma, saturation)
+    private const float ADJUSTMENT_MIN = 0.0;
+
+    private const float ADJUSTMENT_MAX = 2.0;
+
+    // Quality constraints (percentage)
+    private const int QUALITY_MIN = 1;
+
+    private const int QUALITY_MAX = 100;
+
+    // Other constraints
+    private const float SHARPEN_MIN = 0.0;
+
+    private const float SHARPEN_MAX = 10.0;
+
+    private const float DPR_MIN = 0.1;
+
+    private const float DPR_MAX = 5.0;
+
+    private const float ZOOM_MIN = 0.0;
+
+    private const float ZOOM_MAX = 1.0;
+
+    private const int TOLERANCE_MIN = 0;
+
+    private const int TOLERANCE_MAX = 255;
+
+    /** @var array<int, int> */
+    private const array VALID_ROTATIONS = [90, 180, 270];
+
     /** @var array<string, string> */
     private array $transforms = [];
 
@@ -56,38 +99,28 @@ class CloudflareImage implements CloudflareImageContract
     /** Blur radius between 1 (slight blur) and 250 (maximum). */
     public function blur(float $blur): self
     {
-        return $blur >= 1 && $blur <= 250
-            ? $this->with('blur', $blur)
-            : throw new InvalidArgumentException('Blur must be 1-250');
+        return $this->setValidatedFloat('blur', $blur, self::BLUR_MIN, self::BLUR_MAX, 'Blur');
     }
 
     /** Brightness multiplier. 1.0 = no change, 0.5 = half brightness, 2.0 = twice as bright. */
     public function brightness(float $brightness): self
     {
-        return $brightness >= 0 && $brightness <= 2
-            ? $this->with('brightness', $brightness)
-            : throw new InvalidArgumentException('Brightness must be 0-2');
+        return $this->setValidatedFloat('brightness', $brightness, self::ADJUSTMENT_MIN, self::ADJUSTMENT_MAX, 'Brightness');
     }
 
     public function compression(string $compression = 'fast'): self
     {
-        return $compression === 'fast'
-            ? $this->with('compression', $compression)
-            : throw new InvalidArgumentException('Compression must be "fast"');
+        return $this->setValidatedEquals('compression', $compression, 'fast', 'Compression');
     }
 
     public function contrast(float $contrast): self
     {
-        return $contrast >= 0 && $contrast <= 2
-            ? $this->with('contrast', $contrast)
-            : throw new InvalidArgumentException('Contrast must be 0-2');
+        return $this->setValidatedFloat('contrast', $contrast, self::ADJUSTMENT_MIN, self::ADJUSTMENT_MAX, 'Contrast');
     }
 
     public function dpr(float $dpr): self
     {
-        return $dpr >= 0.1 && $dpr <= 5
-            ? $this->with('dpr', $dpr)
-            : throw new InvalidArgumentException('DPR must be 0.1-5');
+        return $this->setValidatedFloat('dpr', $dpr, self::DPR_MIN, self::DPR_MAX, 'DPR');
     }
 
     /** How to resize the image within the given dimensions. */
@@ -110,9 +143,7 @@ class CloudflareImage implements CloudflareImageContract
 
     public function gamma(float $gamma): self
     {
-        return $gamma >= 0 && $gamma <= 2
-            ? $this->with('gamma', $gamma)
-            : throw new InvalidArgumentException('Gamma must be 0-2');
+        return $this->setValidatedFloat('gamma', $gamma, self::ADJUSTMENT_MIN, self::ADJUSTMENT_MAX, 'Gamma');
     }
 
     /** Focal point for cropping. Accepts Gravity enum or "XxY" coordinates (0.0-1.0). */
@@ -139,9 +170,7 @@ class CloudflareImage implements CloudflareImageContract
     /** Maximum height in pixels. Behavior depends on fit mode. */
     public function height(int $height): self
     {
-        return $height >= 1 && $height <= 12000
-            ? $this->with('h', $height)
-            : throw new InvalidArgumentException('Height must be 1-12,000');
+        return $this->setValidatedInt('h', $height, self::DIMENSION_MIN, self::DIMENSION_MAX, 'Height');
     }
 
     /**
@@ -193,9 +222,7 @@ class CloudflareImage implements CloudflareImageContract
 
     public function onerror(string $action = 'redirect'): self
     {
-        return $action === 'redirect'
-            ? $this->with('onerror', $action)
-            : throw new InvalidArgumentException('OnError must be "redirect"');
+        return $this->setValidatedEquals('onerror', $action, 'redirect', 'OnError');
     }
 
     public function optimize(): self
@@ -216,23 +243,17 @@ class CloudflareImage implements CloudflareImageContract
 
     public function rotate(int $degrees): self
     {
-        return in_array($degrees, [90, 180, 270])
-            ? $this->with('rotate', $degrees)
-            : throw new InvalidArgumentException('Rotation must be 90, 180, or 270');
+        return $this->setValidatedInSet('rotate', $degrees, self::VALID_ROTATIONS, 'Rotation');
     }
 
     public function saturation(float $saturation): self
     {
-        return $saturation >= 0 && $saturation <= 2
-            ? $this->with('saturation', $saturation)
-            : throw new InvalidArgumentException('Saturation must be 0-2');
+        return $this->setValidatedFloat('saturation', $saturation, self::ADJUSTMENT_MIN, self::ADJUSTMENT_MAX, 'Saturation');
     }
 
     public function sharpen(float $sharpen): self
     {
-        return $sharpen >= 0 && $sharpen <= 10
-            ? $this->with('sharpen', $sharpen)
-            : throw new InvalidArgumentException('Sharpen must be 0-10');
+        return $this->setValidatedFloat('sharpen', $sharpen, self::SHARPEN_MIN, self::SHARPEN_MAX, 'Sharpen');
     }
 
     public function thumbnail(int $size = 150): self
@@ -258,8 +279,8 @@ class CloudflareImage implements CloudflareImageContract
         }
 
         if ($tolerance !== null) {
-            if ($tolerance < 0 || $tolerance > 255) {
-                throw new InvalidArgumentException('Tolerance must be between 0-255');
+            if ($tolerance < self::TOLERANCE_MIN || $tolerance > self::TOLERANCE_MAX) {
+                throw new InvalidArgumentException(sprintf('Tolerance must be between %d and %d', self::TOLERANCE_MIN, self::TOLERANCE_MAX));
             }
 
             $instance = $instance->with('trim.border.tolerance', $tolerance);
@@ -300,70 +321,18 @@ class CloudflareImage implements CloudflareImageContract
     /** Maximum width in pixels. Use auto=true for automatic responsive sizing. */
     public function width(int $width = 640, bool $auto = false): self
     {
-        return match (true) {
-            $auto => $this->with('w', 'auto'),
-            default => $width >= 1 && $width <= 12000
-                ? $this->with('w', $width)
-                : throw new InvalidArgumentException("Width must be 1-12,000 or 'auto'")
-        };
+        return $auto
+            ? $this->with('w', 'auto')
+            : $this->setValidatedInt('w', $width, self::DIMENSION_MIN, self::DIMENSION_MAX, 'Width');
     }
 
     public function zoom(float $zoom): self
     {
-        return match (true) {
-            ! ($zoom >= 0 && $zoom <= 1) => throw new InvalidArgumentException('Zoom must be 0-1'),
-            ($this->transforms['gravity'] ?? null) !== 'face' => throw new InvalidArgumentException('Zoom requires gravity=face'),
-            default => $this->with('zoom', $zoom)
-        };
-    }
-
-    /**
-     * Add a border around the image.
-     *
-     * Border is added after resizing and accounts for DPR.
-     * Use either $width for uniform border, or individual side parameters.
-     *
-     * @see https://developers.cloudflare.com/images/transform-images/transform-via-url/#border
-     */
-    public function border(
-        ?string $color = null,
-        ?int $width = null,
-        ?int $top = null,
-        ?int $right = null,
-        ?int $bottom = null,
-        ?int $left = null
-    ): self {
-        $parts = [];
-
-        if ($color !== null) {
-            $parts[] = "color:{$color}";
+        if (($this->transforms['gravity'] ?? null) !== 'face') {
+            throw new InvalidArgumentException('Zoom requires gravity=face');
         }
 
-        if ($width !== null) {
-            if ($width < 0) {
-                throw new InvalidArgumentException('Border width must be non-negative');
-            }
-
-            $parts[] = "width:{$width}";
-        }
-
-        // Individual sides (if any specified, use these instead of width)
-        $sides = ['top' => $top, 'right' => $right, 'bottom' => $bottom, 'left' => $left];
-        foreach ($sides as $side => $value) {
-            if ($value !== null) {
-                if ($value < 0) {
-                    throw new InvalidArgumentException("Border {$side} must be non-negative");
-                }
-
-                $parts[] = "{$side}:{$value}";
-            }
-        }
-
-        if ($parts === []) {
-            throw new InvalidArgumentException('Border requires at least one parameter');
-        }
-
-        return $this->with('border', implode('_', $parts));
+        return $this->setValidatedFloat('zoom', $zoom, self::ZOOM_MIN, self::ZOOM_MAX, 'Zoom');
     }
 
     /**
@@ -373,9 +342,7 @@ class CloudflareImage implements CloudflareImageContract
      */
     public function segment(string $mode = 'foreground'): self
     {
-        return $mode === 'foreground'
-            ? $this->with('segment', $mode)
-            : throw new InvalidArgumentException('Segment must be "foreground"');
+        return $this->setValidatedEquals('segment', $mode, 'foreground', 'Segment');
     }
 
     /**
@@ -388,6 +355,64 @@ class CloudflareImage implements CloudflareImageContract
     public function slowConnectionQuality(Quality|int $quality): self
     {
         return $this->validateAndSetQuality($quality, 'scq');
+    }
+
+    /**
+     * Generate srcset string with width descriptors for responsive layouts.
+     *
+     * Use with the HTML `sizes` attribute to let browsers select the optimal image.
+     * Cloudflare recommends this approach for fluid/responsive layouts.
+     *
+     * @param  array<int>  $widths  Width breakpoints (e.g., [320, 640, 960, 1280])
+     * @return string Srcset value: "url 320w, url 640w, ..."
+     *
+     * @see https://developers.cloudflare.com/images/transform-images/make-responsive-images/
+     */
+    public function srcset(array $widths): string
+    {
+        if ($widths === []) {
+            throw new InvalidArgumentException('Srcset widths array cannot be empty');
+        }
+
+        return collect($widths)
+            ->map(fn (int $w): string => $this->cloneWithWidth($w)->url()." {$w}w")
+            ->implode(', ');
+    }
+
+    /**
+     * Generate srcset string with density descriptors for high-DPI displays.
+     *
+     * Use for fixed-size images that need 1x and 2x versions for retina displays.
+     * Cloudflare recommends not scaling images up, so source should be high-resolution.
+     *
+     * @param  int  $baseWidth  The 1x width (will generate 1x and 2x versions)
+     * @return string Srcset value: "url 1x, url 2x"
+     *
+     * @see https://developers.cloudflare.com/images/transform-images/make-responsive-images/
+     */
+    public function srcsetDensity(int $baseWidth): string
+    {
+        $maxBaseWidth = (int) floor(self::DIMENSION_MAX / 2);
+
+        if ($baseWidth < self::DIMENSION_MIN || $baseWidth > $maxBaseWidth) {
+            throw new InvalidArgumentException(sprintf('Base width must be between %s and %s (2x cannot exceed %s)', number_format(self::DIMENSION_MIN), number_format($maxBaseWidth), number_format(self::DIMENSION_MAX)));
+        }
+
+        return implode(', ', [
+            $this->cloneWithWidth($baseWidth)->url().' 1x',
+            $this->cloneWithWidth($baseWidth * 2)->url().' 2x',
+        ]);
+    }
+
+    /** Clone this instance with a specific width, preserving all other transforms. */
+    private function cloneWithWidth(int $width): self
+    {
+        $this->assertValidDimension($width, self::DIMENSION_MIN, self::DIMENSION_MAX, 'Width');
+
+        $clone = clone $this;
+        $clone->transforms['w'] = (string) $width;
+
+        return $clone;
     }
 
     private function buildBaseUrl(): string
@@ -414,14 +439,18 @@ class CloudflareImage implements CloudflareImageContract
 
     private function validateAndSetQuality(Quality|int $quality, string $key): self
     {
-        return match (true) {
-            $quality instanceof Quality => $this->with($key, $quality->value),
-            $quality >= 1 && $quality <= 100 => $this->with($key, $quality),
-            default => throw new InvalidArgumentException('Quality must be 1-100 or Quality enum'),
-        };
+        if ($quality instanceof Quality) {
+            return $this->with($key, $quality->value);
+        }
+
+        if ($quality < self::QUALITY_MIN || $quality > self::QUALITY_MAX) {
+            throw new InvalidArgumentException(sprintf('Quality must be between %d and %d or Quality enum', self::QUALITY_MIN, self::QUALITY_MAX));
+        }
+
+        return $this->with($key, $quality);
     }
 
-    private function with(string $key, mixed $value): self
+    protected function with(string $key, mixed $value): self
     {
         if (! is_scalar($value)) {
             throw new InvalidArgumentException("Value for {$key} must be scalar");

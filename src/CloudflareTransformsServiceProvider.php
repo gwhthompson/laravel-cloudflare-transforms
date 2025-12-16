@@ -10,8 +10,10 @@ use Gwhthompson\CloudflareTransforms\Enums\Format;
 use Gwhthompson\CloudflareTransforms\Enums\Quality;
 use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Foundation\Console\AboutCommand;
+use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\ServiceProvider;
+use InvalidArgumentException;
 use JsonException;
 use Override;
 
@@ -23,7 +25,12 @@ class CloudflareTransformsServiceProvider extends ServiceProvider
             __DIR__.'/config/cloudflare-transforms.php' => $this->app->configPath('cloudflare-transforms.php'),
         ], 'cloudflare-transforms-config');
 
+        $this->publishes([
+            __DIR__.'/resources/views' => $this->app->resourcePath('views/vendor/cloudflare'),
+        ], 'cloudflare-transforms-views');
+
         $this->registerStorageMacros();
+        $this->registerBladeComponents();
         $this->registerAboutCommand();
     }
 
@@ -39,31 +46,51 @@ class CloudflareTransformsServiceProvider extends ServiceProvider
     /**
      * Register Storage macros for transformation support on all FilesystemAdapter instances.
      *
-     * Uses Laravel's built-in S3 driver with the standard 'url' config for CDN domains.
-     * No driver override needed - just adds image transformation methods.
+     * Works with any disk driver (s3, local, ftp, etc.) that has a 'url' config
+     * pointing to a Cloudflare-proxied domain with Image Transformations enabled.
      */
     protected function registerStorageMacros(): void
     {
         FilesystemAdapter::macro('image', function (string $path): CloudflareImageContract {
             /** @var FilesystemAdapter $this */
-            $domain = CloudflareTransformsServiceProvider::extractDomain($this->getConfig());
+            $config = $this->getConfig();
+            $domain = CloudflareTransformsServiceProvider::extractDomain($config);
 
             if ($domain === '') {
                 return new NullCloudflareImage($this->url($path));
             }
 
-            return CloudflareImage::make($path, $domain);
+            // Apply path prefix if configured (for scoped disks)
+            $fullPath = CloudflareTransformsServiceProvider::applyPathPrefix($path, $config);
+
+            // Validate on THIS disk (not config default)
+            $validateExists = Config::get('cloudflare-transforms.validate_file_exists', true);
+            if ($validateExists && ! $this->exists($path)) {
+                throw new InvalidArgumentException("File does not exist: {$path}");
+            }
+
+            return CloudflareImage::make($fullPath, $domain, validateExists: false);
         });
 
         FilesystemAdapter::macro('cloudflareUrl', function (string $path, array $options = []): string {
             /** @var FilesystemAdapter $this */
-            $domain = CloudflareTransformsServiceProvider::extractDomain($this->getConfig());
+            $config = $this->getConfig();
+            $domain = CloudflareTransformsServiceProvider::extractDomain($config);
 
             if ($domain === '') {
                 return $this->url($path);
             }
 
-            $cloudflareImage = CloudflareImage::make($path, $domain);
+            // Apply path prefix if configured (for scoped disks)
+            $fullPath = CloudflareTransformsServiceProvider::applyPathPrefix($path, $config);
+
+            // Validate on THIS disk (not config default)
+            $validateExists = Config::get('cloudflare-transforms.validate_file_exists', true);
+            if ($validateExists && ! $this->exists($path)) {
+                throw new InvalidArgumentException("File does not exist: {$path}");
+            }
+
+            $cloudflareImage = CloudflareImage::make($fullPath, $domain, validateExists: false);
 
             // Apply transformations from options array
             if (isset($options['width']) && is_int($options['width'])) {
@@ -88,6 +115,33 @@ class CloudflareTransformsServiceProvider extends ServiceProvider
 
             return $cloudflareImage->url();
         });
+    }
+
+    /** Register Blade views and components for the package. */
+    protected function registerBladeComponents(): void
+    {
+        $this->loadViewsFrom(__DIR__.'/resources/views', 'cloudflare');
+
+        Blade::componentNamespace(
+            'Gwhthompson\\CloudflareTransforms\\View\\Components',
+            'cloudflare'
+        );
+    }
+
+    /**
+     * Apply path prefix from disk config (for scoped disks).
+     *
+     * @param  array<array-key, mixed>  $config
+     */
+    public static function applyPathPrefix(string $path, array $config): string
+    {
+        $prefix = $config['prefix'] ?? null;
+
+        if (! is_string($prefix) || $prefix === '') {
+            return $path;
+        }
+
+        return rtrim($prefix, '/').'/'.ltrim($path, '/');
     }
 
     /**

@@ -152,6 +152,84 @@ describe('CloudflareTransformsServiceProvider', function () {
             expect(method_exists($provider, 'registerAboutCommand'))->toBeTrue();
         });
     });
+
+    describe('applyPathPrefix helper', function () {
+        it('returns path unchanged when no prefix', function () {
+            $result = CloudflareTransformsServiceProvider::applyPathPrefix('photo.jpg', []);
+            expect($result)->toBe('photo.jpg');
+        });
+
+        it('returns path unchanged when prefix is empty string', function () {
+            $result = CloudflareTransformsServiceProvider::applyPathPrefix('photo.jpg', ['prefix' => '']);
+            expect($result)->toBe('photo.jpg');
+        });
+
+        it('prepends prefix to path', function () {
+            $result = CloudflareTransformsServiceProvider::applyPathPrefix('photo.jpg', ['prefix' => 'uploads']);
+            expect($result)->toBe('uploads/photo.jpg');
+        });
+
+        it('handles prefix with trailing slash', function () {
+            $result = CloudflareTransformsServiceProvider::applyPathPrefix('photo.jpg', ['prefix' => 'uploads/']);
+            expect($result)->toBe('uploads/photo.jpg');
+        });
+
+        it('handles path with leading slash', function () {
+            $result = CloudflareTransformsServiceProvider::applyPathPrefix('/photo.jpg', ['prefix' => 'uploads']);
+            expect($result)->toBe('uploads/photo.jpg');
+        });
+
+        it('handles nested prefix', function () {
+            $result = CloudflareTransformsServiceProvider::applyPathPrefix('photo.jpg', ['prefix' => 'media/images']);
+            expect($result)->toBe('media/images/photo.jpg');
+        });
+
+        it('handles nested path', function () {
+            $result = CloudflareTransformsServiceProvider::applyPathPrefix('venues/photo.jpg', ['prefix' => 'uploads']);
+            expect($result)->toBe('uploads/venues/photo.jpg');
+        });
+    });
+
+    describe('scoped disk path prefix', function () {
+        beforeEach(function () {
+            config(['cloudflare-transforms.domain' => null]);
+            config(['cloudflare-transforms.validate_file_exists' => false]);
+        });
+
+        it('includes prefix in transform URL for image macro', function () {
+            $adapter = createAdapter([
+                'url' => 'https://cdn.example.com',
+                'prefix' => 'videos',
+            ]);
+
+            $url = $adapter->image('clip.mp4')->url();
+
+            expect($url)->toContain('videos/clip.mp4');
+        });
+
+        it('includes prefix in transform URL for cloudflareUrl macro', function () {
+            $adapter = createAdapter([
+                'url' => 'https://cdn.example.com',
+                'prefix' => 'videos',
+            ]);
+
+            $url = $adapter->cloudflareUrl('clip.mp4', ['width' => 300]);
+
+            expect($url)->toContain('videos/clip.mp4');
+            expect($url)->toContain('w=300');
+        });
+
+        it('handles nested prefix in transform URL', function () {
+            $adapter = createAdapter([
+                'url' => 'https://cdn.example.com',
+                'prefix' => 'media/uploads',
+            ]);
+
+            $url = $adapter->image('photo.jpg')->width(400)->url();
+
+            expect($url)->toContain('media/uploads/photo.jpg');
+        });
+    });
 });
 
 describe('Package integration', function () {

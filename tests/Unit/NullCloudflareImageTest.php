@@ -63,12 +63,44 @@ describe('NullCloudflareImage', function () {
 
     it('supports all new Cloudflare parameters', function () {
         $result = $this->nullImage
-            ->border('#000000', 10)
             ->segment('foreground')
             ->slowConnectionQuality(Quality::Low);
 
         expect($result)
             ->toBeInstanceOf(NullCloudflareImage::class)
             ->url()->toBe($this->originalUrl);
+    });
+
+    it('returns proper srcset format with width descriptors', function () {
+        $srcset = $this->nullImage->srcset([320, 640, 960]);
+
+        expect($srcset)->toBe(
+            'https://example.com/test.jpg 320w, https://example.com/test.jpg 640w, https://example.com/test.jpg 960w'
+        );
+    });
+
+    it('returns proper srcset format with density descriptors', function () {
+        $srcset = $this->nullImage->srcsetDensity(480);
+
+        expect($srcset)->toBe(
+            'https://example.com/test.jpg 1x, https://example.com/test.jpg 2x'
+        );
+    });
+
+    it('ignores transforms before srcset but returns proper format', function () {
+        $srcset = $this->nullImage
+            ->width(300)
+            ->format(Format::Auto)
+            ->srcset([400, 800]);
+
+        expect($srcset)->toBe(
+            'https://example.com/test.jpg 400w, https://example.com/test.jpg 800w'
+        );
+    });
+
+    it('returns original URL for empty srcset array', function () {
+        $srcset = $this->nullImage->srcset([]);
+
+        expect($srcset)->toBe($this->originalUrl);
     });
 });
