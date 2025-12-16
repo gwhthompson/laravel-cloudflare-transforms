@@ -3,8 +3,8 @@
 declare(strict_types=1);
 
 dataset('validation_ranges', [
-    'width_zero' => ['width', 0, 'Width must be between 1 and 12,000'],
-    'height_negative' => ['height', -1, 'Height must be between 1 and 12,000'],
+    'width_zero' => ['width', 0, 'Width must be between 1 and 12000'],
+    'height_negative' => ['height', -1, 'Height must be between 1 and 12000'],
     'blur_over_limit' => ['blur', 251, 'Blur must be between 1 and 250'],
     'brightness_over_limit' => ['brightness', 2.5, 'Brightness must be between 0 and 2'],
     'contrast_over_limit' => ['contrast', 2.5, 'Contrast must be between 0 and 2'],

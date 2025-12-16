@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Gwhthompson\CloudflareTransforms\Concerns;
 
-use InvalidArgumentException;
+use Gwhthompson\CloudflareTransforms\Exceptions\InvalidTransformParameterException;
 
 /**
  * Provides parameter validation for Cloudflare image transformation methods.
@@ -25,12 +25,12 @@ trait ValidatesTransformParameters
     /**
      * Validate an integer is within range and set the transform.
      *
-     * @throws InvalidArgumentException
+     * @throws InvalidTransformParameterException
      */
     private function setValidatedInt(string $key, int $value, int $min, int $max, string $name): self
     {
         if ($value < $min || $value > $max) {
-            throw new InvalidArgumentException(sprintf('%s must be between %s and %s', $name, number_format($min), number_format($max)));
+            throw InvalidTransformParameterException::outOfRange($name, $min, $max);
         }
 
         return $this->with($key, $value);
@@ -39,12 +39,12 @@ trait ValidatesTransformParameters
     /**
      * Validate a float is within range and set the transform.
      *
-     * @throws InvalidArgumentException
+     * @throws InvalidTransformParameterException
      */
     private function setValidatedFloat(string $key, float $value, float $min, float $max, string $name): self
     {
         if ($value < $min || $value > $max) {
-            throw new InvalidArgumentException(sprintf('%s must be between %s and %s', $name, $min, $max));
+            throw InvalidTransformParameterException::outOfRange($name, $min, $max);
         }
 
         return $this->with($key, $value);
@@ -55,12 +55,12 @@ trait ValidatesTransformParameters
      *
      * @param  array<int, int|string>  $allowed
      *
-     * @throws InvalidArgumentException
+     * @throws InvalidTransformParameterException
      */
     private function setValidatedInSet(string $key, int|string $value, array $allowed, string $name): self
     {
         if (! in_array($value, $allowed, true)) {
-            throw new InvalidArgumentException(sprintf('%s must be one of: %s', $name, implode(', ', $allowed)));
+            throw InvalidTransformParameterException::notInSet($name, $allowed);
         }
 
         return $this->with($key, $value);
@@ -69,12 +69,12 @@ trait ValidatesTransformParameters
     /**
      * Validate a value equals expected and set the transform.
      *
-     * @throws InvalidArgumentException
+     * @throws InvalidTransformParameterException
      */
     private function setValidatedEquals(string $key, string $value, string $expected, string $name): self
     {
         if ($value !== $expected) {
-            throw new InvalidArgumentException(sprintf('%s must be "%s"', $name, $expected));
+            throw new InvalidTransformParameterException(sprintf('%s must be "%s"', $name, $expected));
         }
 
         return $this->with($key, $value);
@@ -85,12 +85,12 @@ trait ValidatesTransformParameters
      *
      * Does NOT set - returns validated value for clone operations.
      *
-     * @throws InvalidArgumentException
+     * @throws InvalidTransformParameterException
      */
     private function assertValidDimension(int $value, int $min, int $max, string $name): int
     {
         if ($value < $min || $value > $max) {
-            throw new InvalidArgumentException(sprintf('%s must be between %s and %s', $name, number_format($min), number_format($max)));
+            throw InvalidTransformParameterException::outOfRange($name, $min, $max);
         }
 
         return $value;

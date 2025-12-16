@@ -12,9 +12,11 @@ use Gwhthompson\CloudflareTransforms\Enums\Format;
 use Gwhthompson\CloudflareTransforms\Enums\Gravity;
 use Gwhthompson\CloudflareTransforms\Enums\Metadata;
 use Gwhthompson\CloudflareTransforms\Enums\Quality;
+use Gwhthompson\CloudflareTransforms\Exceptions\ConfigurationException;
+use Gwhthompson\CloudflareTransforms\Exceptions\FileNotFoundException;
+use Gwhthompson\CloudflareTransforms\Exceptions\InvalidTransformParameterException;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Storage;
-use InvalidArgumentException;
 
 /**
  * Fluent API builder for constructing Cloudflare Image Transformation URLs.
@@ -159,7 +161,7 @@ final class CloudflareImage implements CloudflareImageContract
             return $this->with('gravity', $value);
         }
 
-        throw new InvalidArgumentException('Invalid gravity');
+        throw InvalidTransformParameterException::invalidPath('Invalid gravity coordinate format. Expected "XxY" where X and Y are between 0.0 and 1.0');
     }
 
     public function grayscale(): self
@@ -198,12 +200,9 @@ final class CloudflareImage implements CloudflareImageContract
         $validateConfig = Config::get('cloudflare-transforms.validate_file_exists', true);
         $validateExists ??= is_bool($validateConfig) ? $validateConfig : true;
 
-        // If no domain is configured, fall back to parsing the current APP_URL
+        // Throw an exception if no domain is configured - fail fast with helpful message
         if ($domain === '') {
-            $appUrlConfig = Config::get('app.url', 'http://localhost');
-            $appUrl = is_string($appUrlConfig) ? $appUrlConfig : 'http://localhost';
-            $parsedHost = parse_url($appUrl, PHP_URL_HOST);
-            $domain = is_string($parsedHost) ? $parsedHost : 'localhost';
+            throw ConfigurationException::missingDomain();
         }
 
         return new self(
@@ -264,7 +263,7 @@ final class CloudflareImage implements CloudflareImageContract
     public function trim(int $top = 0, int $right = 0, int $bottom = 0, int $left = 0): self
     {
         if ($top < 0 || $right < 0 || $bottom < 0 || $left < 0) {
-            throw new InvalidArgumentException('Trim values must be non-negative');
+            throw new InvalidTransformParameterException('Trim values must be non-negative');
         }
 
         return $this->with('trim', "{$top};{$right};{$bottom};{$left}");
@@ -280,7 +279,7 @@ final class CloudflareImage implements CloudflareImageContract
 
         if ($tolerance !== null) {
             if ($tolerance < self::TOLERANCE_MIN || $tolerance > self::TOLERANCE_MAX) {
-                throw new InvalidArgumentException(sprintf('Tolerance must be between %d and %d', self::TOLERANCE_MIN, self::TOLERANCE_MAX));
+                throw InvalidTransformParameterException::outOfRange('Tolerance', self::TOLERANCE_MIN, self::TOLERANCE_MAX);
             }
 
             $instance = $instance->with('trim.border.tolerance', $tolerance);
@@ -288,7 +287,7 @@ final class CloudflareImage implements CloudflareImageContract
 
         if ($keep !== null) {
             if ($keep < 0) {
-                throw new InvalidArgumentException('Keep must be 0 or greater');
+                throw new InvalidTransformParameterException('Keep must be 0 or greater');
             }
 
             $instance = $instance->with('trim.border.keep', $keep);
@@ -303,12 +302,12 @@ final class CloudflareImage implements CloudflareImageContract
         // Validate path - check both raw and URL-decoded for traversal attempts
         $decodedPath = urldecode($this->path);
         if ($this->path === '' || $this->path === '0' || str_contains($this->path, '..') || str_contains($decodedPath, '..')) {
-            throw new InvalidArgumentException('Invalid path');
+            throw InvalidTransformParameterException::invalidPath('Invalid path: path cannot be empty or contain directory traversal');
         }
 
         // Optional file existence check (can be disabled for performance)
         if ($this->validateExists && ! Storage::disk($this->disk)->exists($this->path)) {
-            throw new InvalidArgumentException("File does not exist: {$this->path}");
+            throw FileNotFoundException::forPath($this->path, $this->disk);
         }
 
         $baseUrl = $this->buildBaseUrl();
@@ -329,7 +328,7 @@ final class CloudflareImage implements CloudflareImageContract
     public function zoom(float $zoom): self
     {
         if (($this->transforms['gravity'] ?? null) !== 'face') {
-            throw new InvalidArgumentException('Zoom requires gravity=face');
+            throw InvalidTransformParameterException::missingPrerequisite('Zoom', 'gravity=face');
         }
 
         return $this->setValidatedFloat('zoom', $zoom, self::ZOOM_MIN, self::ZOOM_MAX, 'Zoom');
@@ -371,7 +370,7 @@ final class CloudflareImage implements CloudflareImageContract
     public function srcset(array $widths): string
     {
         if ($widths === []) {
-            throw new InvalidArgumentException('Srcset widths array cannot be empty');
+            throw new InvalidTransformParameterException('Srcset widths array cannot be empty');
         }
 
         return collect($widths)
@@ -395,7 +394,7 @@ final class CloudflareImage implements CloudflareImageContract
         $maxBaseWidth = (int) floor(self::DIMENSION_MAX / 2);
 
         if ($baseWidth < self::DIMENSION_MIN || $baseWidth > $maxBaseWidth) {
-            throw new InvalidArgumentException(sprintf('Base width must be between %s and %s (2x cannot exceed %s)', number_format(self::DIMENSION_MIN), number_format($maxBaseWidth), number_format(self::DIMENSION_MAX)));
+            throw InvalidTransformParameterException::outOfRange('Base width', self::DIMENSION_MIN, $maxBaseWidth);
         }
 
         return implode(', ', [
@@ -422,6 +421,11 @@ final class CloudflareImage implements CloudflareImageContract
 
     private function buildTransformUrl(): string
     {
+        // Deferred validation: zoom requires gravity=face (catches edge case where gravity is set after zoom)
+        if (isset($this->transforms['zoom']) && ($this->transforms['gravity'] ?? null) !== 'face') {
+            throw InvalidTransformParameterException::missingPrerequisite('Zoom', 'gravity=face');
+        }
+
         $options = array_map(
             fn ($key, $value): string => match ($key) {
                 'background' => 'background='.urlencode($value),
@@ -444,7 +448,7 @@ final class CloudflareImage implements CloudflareImageContract
         }
 
         if ($quality < self::QUALITY_MIN || $quality > self::QUALITY_MAX) {
-            throw new InvalidArgumentException(sprintf('Quality must be between %d and %d or Quality enum', self::QUALITY_MIN, self::QUALITY_MAX));
+            throw InvalidTransformParameterException::outOfRange('Quality', self::QUALITY_MIN, self::QUALITY_MAX);
         }
 
         return $this->with($key, $quality);
@@ -453,7 +457,7 @@ final class CloudflareImage implements CloudflareImageContract
     protected function with(string $key, mixed $value): self
     {
         if (! is_scalar($value)) {
-            throw new InvalidArgumentException("Value for {$key} must be scalar");
+            throw new InvalidTransformParameterException("Value for {$key} must be scalar");
         }
 
         $value = strval($value);

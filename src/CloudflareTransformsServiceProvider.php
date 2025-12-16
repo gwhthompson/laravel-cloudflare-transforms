@@ -8,12 +8,12 @@ use Gwhthompson\CloudflareTransforms\Contracts\CloudflareImageContract;
 use Gwhthompson\CloudflareTransforms\Enums\Fit;
 use Gwhthompson\CloudflareTransforms\Enums\Format;
 use Gwhthompson\CloudflareTransforms\Enums\Quality;
+use Gwhthompson\CloudflareTransforms\Exceptions\FileNotFoundException;
 use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Foundation\Console\AboutCommand;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\ServiceProvider;
-use InvalidArgumentException;
 use JsonException;
 use Override;
 
@@ -41,6 +41,9 @@ class CloudflareTransformsServiceProvider extends ServiceProvider
             __DIR__.'/config/cloudflare-transforms.php',
             'cloudflare-transforms'
         );
+
+        // Bind factory for Facade support
+        $this->app->singleton(CloudflareImageFactory::class);
     }
 
     /**
@@ -66,7 +69,7 @@ class CloudflareTransformsServiceProvider extends ServiceProvider
             // Validate on THIS disk (not config default)
             $validateExists = Config::get('cloudflare-transforms.validate_file_exists', true);
             if ($validateExists && ! $this->exists($path)) {
-                throw new InvalidArgumentException("File does not exist: {$path}");
+                throw FileNotFoundException::forPath($path);
             }
 
             return CloudflareImage::make($fullPath, $domain, validateExists: false);
@@ -87,30 +90,30 @@ class CloudflareTransformsServiceProvider extends ServiceProvider
             // Validate on THIS disk (not config default)
             $validateExists = Config::get('cloudflare-transforms.validate_file_exists', true);
             if ($validateExists && ! $this->exists($path)) {
-                throw new InvalidArgumentException("File does not exist: {$path}");
+                throw FileNotFoundException::forPath($path);
             }
 
             $cloudflareImage = CloudflareImage::make($fullPath, $domain, validateExists: false);
 
-            // Apply transformations from options array
+            // Apply transformations from options array (proper fluent pattern - reassign return values)
             if (isset($options['width']) && is_int($options['width'])) {
-                $cloudflareImage->width($options['width']);
+                $cloudflareImage = $cloudflareImage->width($options['width']);
             }
 
             if (isset($options['height']) && is_int($options['height'])) {
-                $cloudflareImage->height($options['height']);
+                $cloudflareImage = $cloudflareImage->height($options['height']);
             }
 
             if (isset($options['format']) && $options['format'] instanceof Format) {
-                $cloudflareImage->format($options['format']);
+                $cloudflareImage = $cloudflareImage->format($options['format']);
             }
 
             if (isset($options['quality']) && (is_int($options['quality']) || $options['quality'] instanceof Quality)) {
-                $cloudflareImage->quality($options['quality']);
+                $cloudflareImage = $cloudflareImage->quality($options['quality']);
             }
 
             if (isset($options['fit']) && $options['fit'] instanceof Fit) {
-                $cloudflareImage->fit($options['fit']);
+                $cloudflareImage = $cloudflareImage->fit($options['fit']);
             }
 
             return $cloudflareImage->url();

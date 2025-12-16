@@ -7,6 +7,8 @@ use Gwhthompson\CloudflareTransforms\Enums\Fit;
 use Gwhthompson\CloudflareTransforms\Enums\Format;
 use Gwhthompson\CloudflareTransforms\Enums\Gravity;
 use Gwhthompson\CloudflareTransforms\Enums\Quality;
+use Gwhthompson\CloudflareTransforms\Exceptions\ConfigurationException;
+use Gwhthompson\CloudflareTransforms\Exceptions\InvalidTransformParameterException;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Storage;
 
@@ -72,16 +74,16 @@ describe('URL generation', function () {
 describe('parameter validation', function () {
     it('validates parameter ranges', function (string $method, mixed $value, string $expectedMessage) {
         expect(fn () => CloudflareImage::make('test.jpg')->$method($value))
-            ->toThrow(InvalidArgumentException::class, $expectedMessage);
+            ->toThrow(InvalidTransformParameterException::class, $expectedMessage);
     })->with('validation_ranges');
 
     it('validates trim border parameters', function (int $value, string $expectedMessage) {
         if (str_contains(strtolower($expectedMessage), 'tolerance')) {
             expect(fn () => CloudflareImage::make('test.jpg')->trimBorder(tolerance: $value))
-                ->toThrow(InvalidArgumentException::class, $expectedMessage);
+                ->toThrow(InvalidTransformParameterException::class, $expectedMessage);
         } else {
             expect(fn () => CloudflareImage::make('test.jpg')->trimBorder(keep: $value))
-                ->toThrow(InvalidArgumentException::class, $expectedMessage);
+                ->toThrow(InvalidTransformParameterException::class, $expectedMessage);
         }
     })->with('trim_border_validation');
 
@@ -91,7 +93,7 @@ describe('parameter validation', function () {
             expect($url)->toContain("gravity={$gravity}");
         } else {
             expect(fn () => CloudflareImage::make('test.jpg')->gravity($gravity))
-                ->toThrow(InvalidArgumentException::class, 'Invalid gravity');
+                ->toThrow(InvalidTransformParameterException::class, 'Invalid gravity');
         }
     })->with('gravity_coordinates');
 });
@@ -125,22 +127,20 @@ describe('special cases', function () {
 });
 
 describe('path validation', function () {
-    it('validates paths', function (string $path, string $expectedMessage) {
+    it('validates invalid paths', function (string $path, string $expectedMessage, string $exceptionClass) {
         expect(fn () => CloudflareImage::make($path)->url())
-            ->toThrow(InvalidArgumentException::class, $expectedMessage);
+            ->toThrow($exceptionClass, $expectedMessage);
     })->with('invalid_paths');
 });
 
 describe('configuration fallbacks', function () {
-    it('handles configuration fallback scenarios', function (array $config, string $expectedDomain) {
-        // Set configs
-        foreach ($config as $key => $value) {
-            Config::set($key, $value);
-        }
+    it('throws ConfigurationException when no domain configured', function () {
+        Config::set('cloudflare-transforms.domain', null);
+        Config::set('app.url', null);
 
-        $url = CloudflareImage::make('test.jpg')->url();
-        expect($url)->toStartWith("https://{$expectedDomain}/");
-    })->with('config_fallback_scenarios');
+        expect(fn () => CloudflareImage::make('test.jpg'))
+            ->toThrow(ConfigurationException::class, 'No Cloudflare domain configured');
+    });
 
     it('can be created with custom parameters', function () {
         Storage::fake('local');
@@ -252,18 +252,18 @@ describe('srcset generation', function () {
 
     it('throws on empty srcset array', function () {
         expect(fn () => CloudflareImage::make('test.jpg')->srcset([]))
-            ->toThrow(InvalidArgumentException::class, 'Srcset widths array cannot be empty');
+            ->toThrow(InvalidTransformParameterException::class, 'Srcset widths array cannot be empty');
     });
 
     it('validates width values in srcset', function () {
         expect(fn () => CloudflareImage::make('test.jpg')->srcset([0, 300]))
-            ->toThrow(InvalidArgumentException::class, 'Width must be between 1 and 12,000');
+            ->toThrow(InvalidTransformParameterException::class, 'Width must be between 1 and 12000');
     });
 
     it('validates srcsetDensity base width cannot exceed half of max', function () {
         // Max is 12,000, so 2x of 7,000 = 14,000 exceeds max
         expect(fn () => CloudflareImage::make('test.jpg')->srcsetDensity(7000))
-            ->toThrow(InvalidArgumentException::class, 'Base width must be between 1 and 6,000');
+            ->toThrow(InvalidTransformParameterException::class, 'Base width must be between 1 and 6000');
     });
 
     it('accepts srcsetDensity base width at max valid value', function () {

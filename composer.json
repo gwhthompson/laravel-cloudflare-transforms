@@ -49,7 +49,10 @@
     "laravel": {
       "providers": [
         "Gwhthompson\\CloudflareTransforms\\CloudflareTransformsServiceProvider"
-      ]
+      ],
+      "aliases": {
+        "CloudflareImage": "Gwhthompson\\CloudflareTransforms\\Facades\\CloudflareImage"
+      }
     }
   },
   "config": {

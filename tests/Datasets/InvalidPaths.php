@@ -2,10 +2,13 @@
 
 declare(strict_types=1);
 
+use Gwhthompson\CloudflareTransforms\Exceptions\FileNotFoundException;
+use Gwhthompson\CloudflareTransforms\Exceptions\InvalidTransformParameterException;
+
 dataset('invalid_paths', [
-    'empty_string' => ['', 'Invalid path'],
-    'path_traversal' => ['../test.jpg', 'Invalid path'],
-    'nonexistent_file' => ['nonexistent.jpg', 'File does not exist: nonexistent.jpg'],
+    'empty_string' => ['', 'Invalid path', InvalidTransformParameterException::class],
+    'path_traversal' => ['../test.jpg', 'Invalid path', InvalidTransformParameterException::class],
+    'nonexistent_file' => ['nonexistent.jpg', 'File does not exist', FileNotFoundException::class],
 ]);
 
 dataset('transformation_combinations', [
