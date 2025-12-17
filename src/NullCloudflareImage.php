@@ -12,16 +12,7 @@ use Gwhthompson\CloudflareTransforms\Enums\Gravity;
 use Gwhthompson\CloudflareTransforms\Enums\Metadata;
 use Gwhthompson\CloudflareTransforms\Enums\Quality;
 
-/**
- * Null object pattern for CloudflareImage when used on non-Cloudflare disks.
- *
- * Implements the same contract as CloudflareImage but all transformation methods
- * are no-ops that return $this, and url() returns the original unmodified URL.
- * This allows code to use the fluent API without conditional checks.
- *
- * Note: This class intentionally skips validation - it's the null object pattern
- * for graceful degradation on non-Cloudflare environments.
- */
+/** Null object for non-Cloudflare disks. Returns original URL unchanged. */
 final readonly class NullCloudflareImage implements CloudflareImageContract
 {
     public function __construct(private string $originalUrl) {}

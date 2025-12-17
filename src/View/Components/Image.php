@@ -24,19 +24,7 @@ class Image extends Component
 {
     public string $disk;
 
-    /**
-     * @param  string  $path  Path to the image file in storage
-     * @param  string|null  $disk  Storage disk name (defaults to config)
-     * @param  int|null  $width  Image width in pixels
-     * @param  int|null  $height  Image height in pixels
-     * @param  Format|null  $format  Output format (use Format::Auto for WebP/AVIF)
-     * @param  Fit|null  $fit  Resize fit mode
-     * @param  Gravity|string|null  $gravity  Focal point for cropping
-     * @param  Quality|int|null  $quality  Output quality (1-100 or Quality enum)
-     * @param  array<int>|null  $srcset  Width breakpoints for responsive srcset
-     * @param  int|null  $srcsetDensity  Base width for 1x/2x density srcset
-     * @param  string|null  $sizes  HTML sizes attribute for responsive images
-     */
+    /** @param array<int>|null $srcset */
     public function __construct(
         public string $path,
         ?string $disk = null,

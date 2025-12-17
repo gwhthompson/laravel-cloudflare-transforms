@@ -120,7 +120,6 @@ class CloudflareTransformsServiceProvider extends ServiceProvider
         });
     }
 
-    /** Register Blade views and components for the package. */
     protected function registerBladeComponents(): void
     {
         $this->loadViewsFrom(__DIR__.'/resources/views', 'cloudflare');
@@ -131,11 +130,7 @@ class CloudflareTransformsServiceProvider extends ServiceProvider
         );
     }
 
-    /**
-     * Apply path prefix from disk config (for scoped disks).
-     *
-     * @param  array<array-key, mixed>  $config
-     */
+    /** @param array<array-key, mixed> $config */
     public static function applyPathPrefix(string $path, array $config): string
     {
         $prefix = $config['prefix'] ?? null;
@@ -147,11 +142,7 @@ class CloudflareTransformsServiceProvider extends ServiceProvider
         return rtrim($prefix, '/').'/'.ltrim($path, '/');
     }
 
-    /**
-     * Extract Cloudflare domain from disk config or package config fallback.
-     *
-     * @param  array<array-key, mixed>  $config
-     */
+    /** @param array<array-key, mixed> $config */
     public static function extractDomain(array $config): string
     {
         $url = is_string($config['url'] ?? null) ? $config['url'] : '';
@@ -166,7 +157,6 @@ class CloudflareTransformsServiceProvider extends ServiceProvider
         return $domain;
     }
 
-    /** Register package information for the about command. */
     protected function registerAboutCommand(): void
     {
         AboutCommand::add('Cloudflare Transforms', function (): array {
