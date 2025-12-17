@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.2.0](https://github.com/gwhthompson/laravel-cloudflare-transforms/compare/v3.1.0...v3.2.0) (2025-12-17)
+
+
+### Features
+
+* prepare for public release and remove unnecessary dependencies ([7792f5e](https://github.com/gwhthompson/laravel-cloudflare-transforms/commit/7792f5ee37513956cbf44ebb64a45016a595d626))
+
 ## [3.1.0](https://github.com/gwhthompson/laravel-cloudflare-transforms/compare/v3.0.0...v3.1.0) (2025-12-17)
 
 
