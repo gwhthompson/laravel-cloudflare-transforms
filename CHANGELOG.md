@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.2.1](https://github.com/gwhthompson/laravel-cloudflare-transforms/compare/v3.2.0...v3.2.1) (2025-12-17)
+
+
+### Bug Fixes
+
+* remove hardcoded version from composer.json ([07e6310](https://github.com/gwhthompson/laravel-cloudflare-transforms/commit/07e6310c0f72f496a4e5cd17b56962f704137be4))
+
 ## [3.2.0](https://github.com/gwhthompson/laravel-cloudflare-transforms/compare/v3.1.0...v3.2.0) (2025-12-17)
 
 
