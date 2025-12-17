@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 use Gwhthompson\CloudflareTransforms\Enums\Fit;
 use Gwhthompson\CloudflareTransforms\Enums\Format;
+use Gwhthompson\CloudflareTransforms\Enums\Gravity;
+use Gwhthompson\CloudflareTransforms\Enums\Quality;
 use Gwhthompson\CloudflareTransforms\View\Components\Image;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Config;
@@ -211,6 +213,60 @@ describe('Image Blade component', function () {
             );
 
             expect($view)->toContain('f=auto');
+        });
+    });
+
+    describe('component property transforms', function () {
+        it('applies height parameter to image builder', function () {
+            $component = new Image(path: 'test.jpg', disk: 'media', height: 200);
+            $url = $component->srcAttribute();
+            expect($url)->toContain('h=200');
+        });
+
+        it('applies gravity enum parameter to image builder', function () {
+            $component = new Image(path: 'test.jpg', disk: 'media', gravity: Gravity::Face);
+            $url = $component->srcAttribute();
+            expect($url)->toContain('gravity=face');
+        });
+
+        it('applies gravity string parameter to image builder', function () {
+            $component = new Image(path: 'test.jpg', disk: 'media', gravity: '0.5x0.5');
+            $url = $component->srcAttribute();
+            expect($url)->toContain('gravity=0.5x0.5');
+        });
+
+        it('applies quality integer parameter to image builder', function () {
+            $component = new Image(path: 'test.jpg', disk: 'media', quality: 85);
+            $url = $component->srcAttribute();
+            expect($url)->toContain('q=85');
+        });
+
+        it('applies quality enum parameter to image builder', function () {
+            $component = new Image(path: 'test.jpg', disk: 'media', quality: Quality::High);
+            $url = $component->srcAttribute();
+            expect($url)->toContain('q=high');
+        });
+
+        it('combines all transform parameters', function () {
+            $component = new Image(
+                path: 'test.jpg',
+                disk: 'media',
+                width: 800,
+                height: 600,
+                format: Format::Webp,
+                fit: Fit::Cover,
+                gravity: Gravity::Auto,
+                quality: 90,
+            );
+            $url = $component->srcAttribute();
+
+            expect($url)
+                ->toContain('w=800')
+                ->toContain('h=600')
+                ->toContain('f=webp')
+                ->toContain('fit=cover')
+                ->toContain('gravity=auto')
+                ->toContain('q=90');
         });
     });
 });

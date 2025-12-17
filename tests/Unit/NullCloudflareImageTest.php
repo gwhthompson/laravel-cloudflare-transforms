@@ -103,4 +103,16 @@ describe('NullCloudflareImage', function () {
 
         expect($srcset)->toBe($this->originalUrl);
     });
+
+    it('returns self from trimBorder method', function () {
+        expect($this->nullImage->trimBorder('#fff', 10, 5))
+            ->toBe($this->nullImage)
+            ->url()->toBe($this->originalUrl);
+    });
+
+    it('returns self from zoom method', function () {
+        expect($this->nullImage->zoom(0.5))
+            ->toBe($this->nullImage)
+            ->url()->toBe($this->originalUrl);
+    });
 });

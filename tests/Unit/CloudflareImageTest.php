@@ -277,3 +277,127 @@ describe('srcset generation', function () {
             ->toContain('test.jpg 2x');
     });
 });
+
+describe('untested transformation methods', function () {
+    it('applies compression transform')
+        ->expect(fn () => CloudflareImage::make('test.jpg')->compression('fast')->url())
+        ->toContain('compression=fast');
+
+    it('applies dpr transform')
+        ->expect(fn () => CloudflareImage::make('test.jpg')->dpr(2.0)->url())
+        ->toContain('dpr=2');
+
+    it('applies grayscale as saturation zero')
+        ->expect(fn () => CloudflareImage::make('test.jpg')->grayscale()->url())
+        ->toContain('saturation=0');
+
+    it('applies onerror transform')
+        ->expect(fn () => CloudflareImage::make('test.jpg')->onerror('redirect')->url())
+        ->toContain('onerror=redirect');
+
+    it('applies optimize preset with auto format and high quality')
+        ->expect(fn () => CloudflareImage::make('test.jpg')->optimize()->url())
+        ->toContain('f=auto')
+        ->toContain('q=high');
+
+    it('applies responsive preset with width dpr and format')
+        ->expect(fn () => CloudflareImage::make('test.jpg')->responsive(800, 2)->url())
+        ->toContain('w=800')
+        ->toContain('dpr=2')
+        ->toContain('f=auto');
+
+    it('applies width auto for responsive sizing')
+        ->expect(fn () => CloudflareImage::make('test.jpg')->width(auto: true)->url())
+        ->toContain('w=auto');
+
+    it('applies segment foreground transform')
+        ->expect(fn () => CloudflareImage::make('test.jpg')->segment('foreground')->url())
+        ->toContain('segment=foreground');
+
+    it('applies slowConnectionQuality with integer')
+        ->expect(fn () => CloudflareImage::make('test.jpg')->slowConnectionQuality(50)->url())
+        ->toContain('scq=50');
+
+    it('applies slowConnectionQuality with Quality enum')
+        ->expect(fn () => CloudflareImage::make('test.jpg')->slowConnectionQuality(Quality::Low)->url())
+        ->toContain('scq=low');
+
+    it('applies zoom with gravity face')
+        ->expect(fn () => CloudflareImage::make('test.jpg')->gravity(Gravity::Face)->zoom(0.5)->url())
+        ->toContain('gravity=face')
+        ->toContain('zoom=0.5');
+
+    it('applies thumbnail preset with size fit cover')
+        ->expect(fn () => CloudflareImage::make('test.jpg')->thumbnail(200)->url())
+        ->toContain('w=200')
+        ->toContain('h=200')
+        ->toContain('fit=cover');
+});
+
+describe('validation edge cases', function () {
+    it('throws for negative trim values', function () {
+        expect(fn () => CloudflareImage::make('test.jpg')->trim(-1, 0, 0, 0))
+            ->toThrow(InvalidTransformParameterException::class, 'non-negative');
+    });
+
+    it('throws for zoom without gravity face', function () {
+        expect(fn () => CloudflareImage::make('test.jpg')->zoom(0.5))
+            ->toThrow(InvalidTransformParameterException::class, 'gravity=face');
+    });
+
+    it('throws for zoom when gravity is not face at zoom call time', function () {
+        expect(fn () => CloudflareImage::make('test.jpg')
+            ->gravity(Gravity::Auto)->zoom(0.5)->url())
+            ->toThrow(InvalidTransformParameterException::class, 'gravity=face');
+    });
+
+    it('throws for zoom when gravity is changed after zoom in buildTransformUrl', function () {
+        // This tests the deferred validation in buildTransformUrl() - line 426
+        // The zoom() method passes because gravity=face, but then gravity is changed
+        $image = CloudflareImage::make('test.jpg')
+            ->gravity(Gravity::Face)
+            ->zoom(0.5);
+
+        // Change gravity to something other than face
+        $image->gravity(Gravity::Auto);
+
+        // Now url() should throw because buildTransformUrl checks zoom requires gravity=face
+        expect(fn () => $image->url())
+            ->toThrow(InvalidTransformParameterException::class, 'gravity=face');
+    });
+
+    it('throws for quality out of range', function (int $quality) {
+        expect(fn () => CloudflareImage::make('test.jpg')->quality($quality))
+            ->toThrow(InvalidTransformParameterException::class, 'between 1 and 100');
+    })->with([0, 101]);
+
+    it('throws for invalid onerror value', function () {
+        expect(fn () => CloudflareImage::make('test.jpg')->onerror('invalid'))
+            ->toThrow(InvalidTransformParameterException::class, 'must be "redirect"');
+    });
+
+    it('throws for invalid compression value', function () {
+        expect(fn () => CloudflareImage::make('test.jpg')->compression('slow'))
+            ->toThrow(InvalidTransformParameterException::class, 'must be "fast"');
+    });
+
+    it('throws for invalid segment value', function () {
+        expect(fn () => CloudflareImage::make('test.jpg')->segment('background'))
+            ->toThrow(InvalidTransformParameterException::class, 'must be "foreground"');
+    });
+
+    it('throws for invalid rotation value', function () {
+        expect(fn () => CloudflareImage::make('test.jpg')->rotate(45))
+            ->toThrow(InvalidTransformParameterException::class);
+    });
+
+    it('applies trim with valid pixel values', function () {
+        $url = CloudflareImage::make('test.jpg')->trim(10, 20, 30, 40)->url();
+        expect($url)->toContain('trim=10;20;30;40');
+    });
+
+    it('applies valid rotation values', function (int $degrees) {
+        $url = CloudflareImage::make('test.jpg')->rotate($degrees)->url();
+        expect($url)->toContain("rotate={$degrees}");
+    })->with([90, 180, 270]);
+});

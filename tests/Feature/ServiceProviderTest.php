@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Gwhthompson\CloudflareTransforms\CloudflareImage;
 use Gwhthompson\CloudflareTransforms\CloudflareTransformsServiceProvider;
 use Gwhthompson\CloudflareTransforms\Enums\Format;
+use Gwhthompson\CloudflareTransforms\Exceptions\FileNotFoundException;
 use Gwhthompson\CloudflareTransforms\NullCloudflareImage;
 use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Support\Facades\Storage;
@@ -151,6 +152,28 @@ describe('CloudflareTransformsServiceProvider', function () {
             $provider = new CloudflareTransformsServiceProvider(app());
             expect(method_exists($provider, 'registerAboutCommand'))->toBeTrue();
         });
+
+        it('displays package info in artisan about command', function () {
+            $this->artisan('about')
+                ->expectsOutputToContain('Cloudflare Transforms')
+                ->assertSuccessful();
+        });
+
+        it('shows domain configuration in about command', function () {
+            config(['cloudflare-transforms.domain' => 'test.example.com']);
+
+            $this->artisan('about')
+                ->expectsOutputToContain('test.example.com')
+                ->assertSuccessful();
+        });
+
+        it('shows not configured when domain is empty', function () {
+            config(['cloudflare-transforms.domain' => '']);
+
+            $this->artisan('about')
+                ->expectsOutputToContain('Not configured')
+                ->assertSuccessful();
+        });
     });
 
     describe('applyPathPrefix helper', function () {
@@ -275,5 +298,34 @@ describe('Package integration', function () {
             ->toContain('cdn.e2e-test.com')
             ->toContain('w=300')
             ->toContain('h=200');
+    });
+});
+
+describe('file validation in macros', function () {
+    it('throws FileNotFoundException from image macro when file missing', function () {
+        Storage::fake('cloudflare');
+        config(['filesystems.disks.cloudflare.url' => 'https://cdn.example.com']);
+        config(['cloudflare-transforms.validate_file_exists' => true]);
+
+        expect(fn () => Storage::disk('cloudflare')->image('nonexistent.jpg'))
+            ->toThrow(FileNotFoundException::class);
+    });
+
+    it('throws FileNotFoundException from cloudflareUrl macro when file missing', function () {
+        Storage::fake('cloudflare');
+        config(['filesystems.disks.cloudflare.url' => 'https://cdn.example.com']);
+        config(['cloudflare-transforms.validate_file_exists' => true]);
+
+        expect(fn () => Storage::disk('cloudflare')->cloudflareUrl('nonexistent.jpg'))
+            ->toThrow(FileNotFoundException::class);
+    });
+
+    it('does not throw when validate_file_exists is false', function () {
+        Storage::fake('cloudflare');
+        config(['filesystems.disks.cloudflare.url' => 'https://cdn.example.com']);
+        config(['cloudflare-transforms.validate_file_exists' => false]);
+
+        $image = Storage::disk('cloudflare')->image('nonexistent.jpg');
+        expect($image)->toBeInstanceOf(CloudflareImage::class);
     });
 });
