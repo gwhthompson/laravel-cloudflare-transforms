@@ -4,7 +4,7 @@
   "description": "Fluent API for Cloudflare Image Transformation URLs in Laravel",
   "type": "library",
   "license": "MIT",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "keywords": ["laravel", "cloudflare", "images", "cdn", "transformations"],
   "authors": [
     {
