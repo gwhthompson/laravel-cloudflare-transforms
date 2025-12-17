@@ -9,7 +9,6 @@
     "issues": "https://github.com/gwhthompson/laravel-cloudflare-transforms/issues",
     "source": "https://github.com/gwhthompson/laravel-cloudflare-transforms"
   },
-  "version": "3.1.0",
   "keywords": ["laravel", "cloudflare", "images", "cdn", "transformations"],
   "authors": [
     {

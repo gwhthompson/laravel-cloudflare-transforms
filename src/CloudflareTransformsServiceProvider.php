@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Gwhthompson\CloudflareTransforms;
 
+use Composer\InstalledVersions;
 use Gwhthompson\CloudflareTransforms\Contracts\CloudflareImageContract;
 use Gwhthompson\CloudflareTransforms\Enums\Fit;
 use Gwhthompson\CloudflareTransforms\Enums\Format;
@@ -14,7 +15,6 @@ use Illuminate\Foundation\Console\AboutCommand;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\ServiceProvider;
-use JsonException;
 use Override;
 
 class CloudflareTransformsServiceProvider extends ServiceProvider
@@ -170,26 +170,12 @@ class CloudflareTransformsServiceProvider extends ServiceProvider
     protected function registerAboutCommand(): void
     {
         AboutCommand::add('Cloudflare Transforms', function (): array {
-            $composerFile = __DIR__.'/../composer.json';
-
-            // Modern PHP 8.4 JSON handling with JSON_THROW_ON_ERROR
-            try {
-                /** @var array{version?: string} $composerData */
-                $composerData = json_decode(
-                    (string) file_get_contents($composerFile),
-                    associative: true,
-                    flags: JSON_THROW_ON_ERROR
-                );
-            } catch (JsonException) {
-                $composerData = [];
-            }
-
             $domain = Config::get('cloudflare-transforms.domain');
             $transformPath = Config::get('cloudflare-transforms.transform_path', 'cdn-cgi/image');
             $validateExists = Config::get('cloudflare-transforms.validate_file_exists', true);
 
             return [
-                'Version' => $composerData['version'] ?? 'unknown',
+                'Version' => InstalledVersions::getPrettyVersion('gwhthompson/laravel-cloudflare-transforms') ?? 'unknown',
                 'Domain' => is_string($domain) && $domain !== '' ? $domain : '<comment>Not configured</comment>',
                 'Transform Path' => is_string($transformPath) ? $transformPath : 'cdn-cgi/image',
                 'File Validation' => (is_bool($validateExists) ? $validateExists : true) ? 'Enabled' : 'Disabled',
