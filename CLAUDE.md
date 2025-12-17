@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ```bash
 composer test      # Run Pest tests
 composer lint      # Run Pint linter (Laravel preset)
-composer analyse   # Run PHPStan static analysis (level 9)
+composer analyse   # Run PHPStan static analysis (level max)
 ```
 
 ## Architecture
@@ -34,7 +34,7 @@ This is a Laravel package that generates Cloudflare Image Transformation URLs wi
 ## Code Standards
 
 - PHP 8.4+ with strict types (`declare(strict_types=1)`)
-- PHPStan level 9 type safety
+- PHPStan level max type safety
 - Laravel Pint with Laravel preset for formatting
 - Rector configured for Laravel 12, strict typing, and code quality rules
 - All methods should have return types and parameter types

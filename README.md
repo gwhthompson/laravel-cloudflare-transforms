@@ -1,6 +1,7 @@
 # Laravel Cloudflare Transforms
 
 [![Tests](https://github.com/gwhthompson/laravel-cloudflare-transforms/actions/workflows/tests.yml/badge.svg)](https://github.com/gwhthompson/laravel-cloudflare-transforms/actions/workflows/tests.yml)
+[![codecov](https://codecov.io/gh/gwhthompson/laravel-cloudflare-transforms/graph/badge.svg)](https://codecov.io/gh/gwhthompson/laravel-cloudflare-transforms)
 [![Latest Version](https://img.shields.io/packagist/v/gwhthompson/laravel-cloudflare-transforms.svg)](https://packagist.org/packages/gwhthompson/laravel-cloudflare-transforms)
 [![PHP Version](https://img.shields.io/packagist/php-v/gwhthompson/laravel-cloudflare-transforms.svg)](https://packagist.org/packages/gwhthompson/laravel-cloudflare-transforms)
 [![License](https://img.shields.io/packagist/l/gwhthompson/laravel-cloudflare-transforms.svg)](https://packagist.org/packages/gwhthompson/laravel-cloudflare-transforms)
@@ -11,7 +12,7 @@ Fluent API for Cloudflare Image Transformation URLs.
 
 - Fluent, chainable API for all Cloudflare image transformations
 - Laravel Storage integration via macros (works with any disk driver)
-- Type-safe enums for fit, format, quality, and gravity options
+- Type-safe enums for fit, format, quality, gravity, flip, and metadata
 - Graceful fallback on non-Cloudflare disks (returns original URL)
 - PHPStan level max strict typing
 
@@ -189,18 +190,106 @@ Storage::disk('media')->image('hero.jpg')
 
 // Array-based
 Storage::disk('media')->cloudflareUrl('photo.jpg', ['width' => 400]);
+
+// Via Facade (alternative to Storage macro)
+use GwhThompson\CloudflareTransforms\Facades\CloudflareImage;
+
+CloudflareImage::make('photo.jpg')->width(400)->url();
 ```
 
 ## Transformations
 
-All [Cloudflare Image Transformations](https://developers.cloudflare.com/images/transform-images/transform-via-url/) are supported via fluent methods.
+The package supports all [Cloudflare Image Transformations](https://developers.cloudflare.com/images/transform-images/transform-via-url/) with fluent methods.
 
-Convenience methods for common patterns:
+### Type-Safe Enums
 
-- `optimize()` — format=auto + quality=high
-- `thumbnail(150)` — square crop at size
-- `responsive(400, 2)` — width + dpr + format=auto
-- `grayscale()` — removes color
+| Enum | Values |
+|------|--------|
+| `Fit` | Contain, Cover, Crop, Pad, ScaleDown, Squeeze |
+| `Format` | Auto, Avif, BaselineJpeg, Jpeg, Json, Webp |
+| `Quality` | High, MediumHigh, MediumLow, Low |
+| `Gravity` | Auto, Top, Bottom, Left, Right, Face |
+| `Flip` | Horizontal, Vertical, Both |
+| `Metadata` | Keep, Copyright, None |
+
+### Convenience Methods
+
+| Method | Effect |
+|--------|--------|
+| `optimize()` | format=auto + quality=high |
+| `thumbnail(150)` | Square crop at size |
+| `responsive(400, 2)` | width + dpr + format=auto |
+| `grayscale()` | Removes colour |
+| `srcset([320, 640, 960])` | Width breakpoints for responsive images |
+| `srcsetDensity(400)` | 1x/2x density variants |
+
+## Blade Component
+
+Render responsive Cloudflare-transformed images directly in Blade:
+
+```blade
+<x-cloudflare:image
+    path="hero.jpg"
+    :width="1200"
+    :height="630"
+    :fit="Fit::Cover"
+    :format="Format::Auto"
+    :srcset="[320, 640, 960, 1280]"
+    sizes="(max-width: 640px) 100vw, 50vw"
+/>
+```
+
+Generates:
+```html
+<img src="https://cdn.example.com/cdn-cgi/image/w=1280,h=630,fit=cover,f=auto/hero.jpg"
+     srcset="...320w, ...640w, ...960w, ...1280w"
+     sizes="(max-width: 640px) 100vw, 50vw">
+```
+
+| Prop | Type | Description |
+|------|------|-------------|
+| `path` | string | Storage path to image (required) |
+| `disk` | string | Storage disk name |
+| `width` | int | Width in pixels |
+| `height` | int | Height in pixels |
+| `format` | Format | Output format (Auto, Webp, Avif, etc.) |
+| `fit` | Fit | Resize mode (Cover, Contain, Crop, etc.) |
+| `gravity` | Gravity\|string | Focal point for cropping |
+| `quality` | Quality\|int | Output quality |
+| `srcset` | array | Width breakpoints for responsive images |
+| `srcsetDensity` | int | Base width for 1x/2x density variants |
+| `sizes` | string | HTML sizes attribute |
+
+All additional HTML attributes are forwarded to the `<img>` tag.
+
+## Responsive Images
+
+Generate srcset strings for responsive images:
+
+```php
+// Width-based breakpoints
+Storage::disk('media')->image('hero.jpg')
+    ->srcset([320, 640, 960, 1280]);
+// → "https://.../w=320/hero.jpg 320w, .../w=640/hero.jpg 640w, ..."
+
+// Density-based variants (1x, 2x)
+Storage::disk('media')->image('hero.jpg')
+    ->srcsetDensity(400);
+// → "https://.../w=400/hero.jpg 1x, .../w=800/hero.jpg 2x"
+```
+
+## Testing
+
+In your test environment, disable file validation:
+
+```bash
+# .env.testing
+CLOUDFLARE_VALIDATE_FILE_EXISTS=false
+```
+
+## Security
+
+If you discover a security vulnerability, please email security@unfetter.co instead of using the issue tracker.
 
 ## License
 

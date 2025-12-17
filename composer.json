@@ -4,6 +4,11 @@
   "description": "Fluent API for Cloudflare Image Transformation URLs in Laravel",
   "type": "library",
   "license": "MIT",
+  "homepage": "https://github.com/gwhthompson/laravel-cloudflare-transforms",
+  "support": {
+    "issues": "https://github.com/gwhthompson/laravel-cloudflare-transforms/issues",
+    "source": "https://github.com/gwhthompson/laravel-cloudflare-transforms"
+  },
   "version": "3.1.0",
   "keywords": ["laravel", "cloudflare", "images", "cdn", "transformations"],
   "authors": [
@@ -14,10 +19,7 @@
   "require": {
     "php": "^8.4",
     "illuminate/support": "^12.0",
-    "illuminate/filesystem": "^12.0",
-    "aws/aws-sdk-php": "^3.0",
-    "league/flysystem": "^3.0",
-    "league/flysystem-aws-s3-v3": "^3.0"
+    "illuminate/filesystem": "^12.0"
   },
   "require-dev": {
     "laravel/boost": "^1.2",
