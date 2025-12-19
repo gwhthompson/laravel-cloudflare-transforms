@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.2.3](https://github.com/gwhthompson/laravel-cloudflare-transforms/compare/v3.2.2...v3.2.3) (2025-12-19)
+
+
+### Miscellaneous Chores
+
+* improve Packagist discoverability ([04965bf](https://github.com/gwhthompson/laravel-cloudflare-transforms/commit/04965bf52dc4d5327a2e800b22ce48f2e3b68e52))
+
 ## [3.2.2](https://github.com/gwhthompson/laravel-cloudflare-transforms/compare/v3.2.1...v3.2.2) (2025-12-19)
 
 
