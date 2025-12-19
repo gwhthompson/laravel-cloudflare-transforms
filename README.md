@@ -9,7 +9,7 @@ Fluent API for [Cloudflare Image Transformations](https://developers.cloudflare.
 
 ## Installation
 
-Requires PHP 8.4+ and Laravel 12+.
+Requires PHP 8.3+ and Laravel 11+.
 
 ```bash
 composer require gwhthompson/laravel-cloudflare-transforms
