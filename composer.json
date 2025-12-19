@@ -14,7 +14,13 @@
     "cloudflare",
     "images",
     "cdn",
-    "transformations"
+    "transformations",
+    "image-optimization",
+    "responsive-images",
+    "srcset",
+    "storage",
+    "media",
+    "resize"
   ],
   "authors": [
     {

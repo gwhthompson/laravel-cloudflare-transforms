@@ -4,6 +4,8 @@
 [![codecov](https://codecov.io/gh/gwhthompson/laravel-cloudflare-transforms/graph/badge.svg)](https://codecov.io/gh/gwhthompson/laravel-cloudflare-transforms)
 [![Latest Version](https://img.shields.io/packagist/v/gwhthompson/laravel-cloudflare-transforms.svg)](https://packagist.org/packages/gwhthompson/laravel-cloudflare-transforms)
 [![License](https://img.shields.io/packagist/l/gwhthompson/laravel-cloudflare-transforms.svg)](https://packagist.org/packages/gwhthompson/laravel-cloudflare-transforms)
+[![Total Downloads](https://img.shields.io/packagist/dt/gwhthompson/laravel-cloudflare-transforms.svg)](https://packagist.org/packages/gwhthompson/laravel-cloudflare-transforms)
+[![PHP Version](https://img.shields.io/packagist/php-v/gwhthompson/laravel-cloudflare-transforms.svg)](https://packagist.org/packages/gwhthompson/laravel-cloudflare-transforms)
 
 Fluent API for [Cloudflare Image Transformations](https://developers.cloudflare.com/images/transform-images/).
 
