@@ -454,14 +454,9 @@ final class CloudflareImage implements CloudflareImageContract
         return $this->with($key, $quality);
     }
 
-    protected function with(string $key, mixed $value): self
+    protected function with(string $key, bool|float|int|string $value): self
     {
-        if (! is_scalar($value)) {
-            throw new InvalidTransformParameterException("Value for {$key} must be scalar");
-        }
-
-        $value = strval($value);
-        $this->transforms[$key] = $value;
+        $this->transforms[$key] = strval($value);
 
         return $this;
     }

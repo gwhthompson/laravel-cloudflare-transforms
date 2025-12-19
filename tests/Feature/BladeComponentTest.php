@@ -169,32 +169,37 @@ describe('Image Blade component', function () {
 
     describe('component rendering', function () {
         it('renders img tag with src attribute', function () {
-            $view = Blade::render(
-                '<x-cloudflare::image path="test.jpg" disk="media" :width="400" />',
-            );
+            $view = $this->component(Image::class, [
+                'path' => 'test.jpg',
+                'disk' => 'media',
+                'width' => 400,
+            ]);
 
-            expect($view)
-                ->toContain('<img')
-                ->toContain('src=');
+            $view->assertSee('<img', false);
+            $view->assertSee('src=', false);
         });
 
         it('renders srcset attribute when configured', function () {
-            $view = Blade::render(
-                '<x-cloudflare::image path="test.jpg" disk="media" :srcset="[400, 800]" />',
-            );
+            $view = $this->component(Image::class, [
+                'path' => 'test.jpg',
+                'disk' => 'media',
+                'srcset' => [400, 800],
+            ]);
 
-            expect($view)
-                ->toContain('srcset=')
-                ->toContain('400w')
-                ->toContain('800w');
+            $view->assertSee('srcset=', false);
+            $view->assertSee('400w', false);
+            $view->assertSee('800w', false);
         });
 
         it('renders sizes attribute when provided', function () {
-            $view = Blade::render(
-                '<x-cloudflare::image path="test.jpg" disk="media" :srcset="[400, 800]" sizes="100vw" />',
-            );
+            $view = $this->component(Image::class, [
+                'path' => 'test.jpg',
+                'disk' => 'media',
+                'srcset' => [400, 800],
+                'sizes' => '100vw',
+            ]);
 
-            expect($view)->toContain('sizes="100vw"');
+            $view->assertSee('sizes="100vw"', false);
         });
 
         it('passes through additional attributes', function () {
@@ -208,11 +213,13 @@ describe('Image Blade component', function () {
         });
 
         it('renders with format enum', function () {
-            $view = Blade::render(
-                '<x-cloudflare::image path="test.jpg" disk="media" :format="\Gwhthompson\CloudflareTransforms\Enums\Format::Auto" />',
-            );
+            $view = $this->component(Image::class, [
+                'path' => 'test.jpg',
+                'disk' => 'media',
+                'format' => Format::Auto,
+            ]);
 
-            expect($view)->toContain('f=auto');
+            $view->assertSee('f=auto', false);
         });
     });
 

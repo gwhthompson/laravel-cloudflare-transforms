@@ -22,11 +22,11 @@ class CloudflareTransformsServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->publishes([
-            __DIR__.'/config/cloudflare-transforms.php' => $this->app->configPath('cloudflare-transforms.php'),
+            __DIR__.'/../config/cloudflare-transforms.php' => $this->app->configPath('cloudflare-transforms.php'),
         ], 'cloudflare-transforms-config');
 
         $this->publishes([
-            __DIR__.'/resources/views' => $this->app->resourcePath('views/vendor/cloudflare'),
+            __DIR__.'/../resources/views' => $this->app->resourcePath('views/vendor/cloudflare'),
         ], 'cloudflare-transforms-views');
 
         $this->registerStorageMacros();
@@ -38,7 +38,7 @@ class CloudflareTransformsServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->mergeConfigFrom(
-            __DIR__.'/config/cloudflare-transforms.php',
+            __DIR__.'/../config/cloudflare-transforms.php',
             'cloudflare-transforms'
         );
 
@@ -122,7 +122,7 @@ class CloudflareTransformsServiceProvider extends ServiceProvider
 
     protected function registerBladeComponents(): void
     {
-        $this->loadViewsFrom(__DIR__.'/resources/views', 'cloudflare');
+        $this->loadViewsFrom(__DIR__.'/../resources/views', 'cloudflare');
 
         Blade::componentNamespace(
             'Gwhthompson\\CloudflareTransforms\\View\\Components',

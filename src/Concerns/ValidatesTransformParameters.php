@@ -20,7 +20,7 @@ trait ValidatesTransformParameters
      * This abstract method must be implemented by the consuming class.
      * It enables the trait to set validated values on the transforms array.
      */
-    abstract protected function with(string $key, mixed $value): self;
+    abstract protected function with(string $key, bool|float|int|string $value): self;
 
     /**
      * Validate an integer is within range and set the transform.
