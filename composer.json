@@ -9,7 +9,13 @@
     "issues": "https://github.com/gwhthompson/laravel-cloudflare-transforms/issues",
     "source": "https://github.com/gwhthompson/laravel-cloudflare-transforms"
   },
-  "keywords": ["laravel", "cloudflare", "images", "cdn", "transformations"],
+  "keywords": [
+    "laravel",
+    "cloudflare",
+    "images",
+    "cdn",
+    "transformations"
+  ],
   "authors": [
     {
       "name": "George Thompson"

@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.2.2](https://github.com/gwhthompson/laravel-cloudflare-transforms/compare/v3.2.1...v3.2.2) (2025-12-19)
+
+
+### Miscellaneous Chores
+
+* broaden PHP/Laravel support and fix CI workflows ([4c36097](https://github.com/gwhthompson/laravel-cloudflare-transforms/commit/4c360975eb969bccf656c0012be03a764f180015))
+
 ## [3.2.1](https://github.com/gwhthompson/laravel-cloudflare-transforms/compare/v3.2.0...v3.2.1) (2025-12-17)
 
 
