@@ -14,7 +14,7 @@ jobs:
         id: metadata
         # Pinned to SHA for security (v2.4.0)
         # See: https://docs.github.com/en/actions/security-for-github-actions/security-guides/security-hardening-for-github-actions
-        uses: dependabot/fetch-metadata@21025c705c08248db411dc16f3619e6b5f9ea21a
+        uses: dependabot/fetch-metadata@ffa630c65fa7e0ecfa0625b5ceda64399aea1b36
 
       - name: Enable auto-merge
         run: gh pr merge --auto --squash "$PR_URL"
