@@ -12,7 +12,9 @@ use Gwhthompson\CloudflareTransforms\Enums\Gravity;
 use Gwhthompson\CloudflareTransforms\Enums\Metadata;
 use Gwhthompson\CloudflareTransforms\Enums\Quality;
 
-/** Null object for non-Cloudflare disks. Returns original URL unchanged. */
+/**
+ * Null object for non-Cloudflare disks. Returns original URL unchanged.
+ */
 final readonly class NullCloudflareImage implements CloudflareImageContract
 {
     public function __construct(private string $originalUrl) {}
