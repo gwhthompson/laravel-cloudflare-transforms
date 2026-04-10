@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.2.3](https://github.com/gwhthompson/laravel-cloudflare-transforms/compare/v3.2.2...v3.2.3) (2026-04-10)
+
+
+### Miscellaneous Chores
+
+* add Laravel 13 support ([0767bac](https://github.com/gwhthompson/laravel-cloudflare-transforms/commit/0767bacda14bd5ee58129ffb589188cfce2017a7))
+* improve Packagist discoverability ([04965bf](https://github.com/gwhthompson/laravel-cloudflare-transforms/commit/04965bf52dc4d5327a2e800b22ce48f2e3b68e52))
+
 ## [3.2.2](https://github.com/gwhthompson/laravel-cloudflare-transforms/compare/v3.2.1...v3.2.2) (2025-12-19)
 
 
