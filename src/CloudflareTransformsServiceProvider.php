@@ -63,7 +63,7 @@ class CloudflareTransformsServiceProvider extends ServiceProvider
                 return new NullCloudflareImage($this->url($path));
             }
 
-            // Apply path prefix if configured (for scoped disks)
+            // Build the zone-root source path (disk url sub-path + scoped-disk prefix)
             $fullPath = CloudflareTransformsServiceProvider::applyPathPrefix($path, $config);
 
             // Validate on THIS disk (not config default)
@@ -84,7 +84,7 @@ class CloudflareTransformsServiceProvider extends ServiceProvider
                 return $this->url($path);
             }
 
-            // Apply path prefix if configured (for scoped disks)
+            // Build the zone-root source path (disk url sub-path + scoped-disk prefix)
             $fullPath = CloudflareTransformsServiceProvider::applyPathPrefix($path, $config);
 
             // Validate on THIS disk (not config default)
@@ -130,16 +130,51 @@ class CloudflareTransformsServiceProvider extends ServiceProvider
         );
     }
 
-    /** @param array<array-key, mixed> $config */
+    /**
+     * Build the zone-root source path for a disk file, mirroring how
+     * FilesystemAdapter::url() composes the public URL: the path component of
+     * the disk's `url` config (e.g. "storage" for the default public disk at
+     * APP_URL/storage), then any scoped-disk `prefix`, then the file path.
+     * Cloudflare resolves transform sources from the zone root, so dropping
+     * the url sub-path 415s the origin subrequest (Cf-Resized err 9412).
+     *
+     * @param  array<array-key, mixed>  $config
+     */
     public static function applyPathPrefix(string $path, array $config): string
     {
         $prefix = $config['prefix'] ?? null;
 
-        if (! is_string($prefix) || $prefix === '') {
+        if (is_string($prefix) && $prefix !== '') {
+            $path = rtrim($prefix, '/').'/'.ltrim($path, '/');
+        }
+
+        $urlPathPrefix = self::extractUrlPathPrefix($config);
+
+        if ($urlPathPrefix === '') {
             return $path;
         }
 
-        return rtrim($prefix, '/').'/'.ltrim($path, '/');
+        return $urlPathPrefix.'/'.ltrim($path, '/');
+    }
+
+    /**
+     * Extract the path component of the disk's `url` config, without
+     * surrounding slashes ('' for a domain-root url). A scheme-less url
+     * (e.g. '/storage') is treated as pure path, matching parse_url().
+     *
+     * @param  array<array-key, mixed>  $config
+     */
+    public static function extractUrlPathPrefix(array $config): string
+    {
+        $url = is_string($config['url'] ?? null) ? $config['url'] : '';
+
+        if ($url === '') {
+            return '';
+        }
+
+        $urlPath = parse_url($url, PHP_URL_PATH);
+
+        return is_string($urlPath) ? trim($urlPath, '/') : '';
     }
 
     /** @param array<array-key, mixed> $config */

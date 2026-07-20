@@ -58,10 +58,12 @@ describe('Storage macros with url config', function () {
 
         it('handles url with path', function () {
             $adapter = createTestAdapter(['url' => 'https://cdn.example.com/storage']);
-            $image = $adapter->image('test.jpg');
-            $url = $image->url();
 
-            expect($url)->toContain('cdn.example.com');
+            expect($adapter->image('test.jpg')->url())
+                ->toBe('https://cdn.example.com/storage/test.jpg');
+
+            expect($adapter->image('test.jpg')->width(300)->url())
+                ->toBe('https://cdn.example.com/cdn-cgi/image/w=300/storage/test.jpg');
         });
     });
 

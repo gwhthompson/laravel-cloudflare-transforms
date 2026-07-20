@@ -211,6 +211,53 @@ describe('CloudflareTransformsServiceProvider', function () {
             $result = CloudflareTransformsServiceProvider::applyPathPrefix('venues/photo.jpg', ['prefix' => 'uploads']);
             expect($result)->toBe('uploads/venues/photo.jpg');
         });
+
+        it('prepends the disk url sub-path', function () {
+            $result = CloudflareTransformsServiceProvider::applyPathPrefix('photo.jpg', ['url' => 'https://cdn.example.com/storage']);
+            expect($result)->toBe('storage/photo.jpg');
+        });
+
+        it('composes url sub-path before scoped prefix', function () {
+            $result = CloudflareTransformsServiceProvider::applyPathPrefix('photo.jpg', [
+                'url' => 'https://cdn.example.com/storage',
+                'prefix' => 'uploads',
+            ]);
+            expect($result)->toBe('storage/uploads/photo.jpg');
+        });
+
+        it('leaves path unchanged for a domain-root url', function () {
+            $result = CloudflareTransformsServiceProvider::applyPathPrefix('photo.jpg', ['url' => 'https://cdn.example.com']);
+            expect($result)->toBe('photo.jpg');
+        });
+
+        it('leaves path unchanged for a domain-root url with trailing slash', function () {
+            $result = CloudflareTransformsServiceProvider::applyPathPrefix('photo.jpg', ['url' => 'https://cdn.example.com/']);
+            expect($result)->toBe('photo.jpg');
+        });
+
+        it('handles a nested url sub-path', function () {
+            $result = CloudflareTransformsServiceProvider::applyPathPrefix('photo.jpg', ['url' => 'https://cdn.example.com/storage/app']);
+            expect($result)->toBe('storage/app/photo.jpg');
+        });
+
+        it('treats a scheme-less url as pure path', function () {
+            $result = CloudflareTransformsServiceProvider::applyPathPrefix('photo.jpg', ['url' => '/storage']);
+            expect($result)->toBe('storage/photo.jpg');
+        });
+    });
+
+    describe('extractUrlPathPrefix helper', function () {
+        it('returns empty string when url is missing', function () {
+            expect(CloudflareTransformsServiceProvider::extractUrlPathPrefix([]))->toBe('');
+        });
+
+        it('returns empty string for a domain-root url', function () {
+            expect(CloudflareTransformsServiceProvider::extractUrlPathPrefix(['url' => 'https://cdn.example.com']))->toBe('');
+        });
+
+        it('returns the trimmed url path', function () {
+            expect(CloudflareTransformsServiceProvider::extractUrlPathPrefix(['url' => 'https://cdn.example.com/storage/']))->toBe('storage');
+        });
     });
 
     describe('scoped disk path prefix', function () {
@@ -251,6 +298,48 @@ describe('CloudflareTransformsServiceProvider', function () {
             $url = $adapter->image('photo.jpg')->width(400)->url();
 
             expect($url)->toContain('media/uploads/photo.jpg');
+        });
+    });
+
+    describe('sub-path url source prefix', function () {
+        beforeEach(function () {
+            config(['cloudflare-transforms.domain' => null]);
+            config(['cloudflare-transforms.validate_file_exists' => false]);
+        });
+
+        it('includes the url sub-path in transform URLs', function () {
+            $adapter = createAdapter(['url' => 'https://staging.example.com/storage']);
+
+            $url = $adapter->image('products/photo.jpg')->width(400)->url();
+
+            expect($url)->toBe('https://staging.example.com/cdn-cgi/image/w=400/storage/products/photo.jpg');
+        });
+
+        it('includes the url sub-path in base URLs', function () {
+            $adapter = createAdapter(['url' => 'https://staging.example.com/storage']);
+
+            $url = $adapter->image('photo.jpg')->url();
+
+            expect($url)->toBe('https://staging.example.com/storage/photo.jpg');
+        });
+
+        it('includes the url sub-path in cloudflareUrl macro output', function () {
+            $adapter = createAdapter(['url' => 'https://staging.example.com/storage']);
+
+            $url = $adapter->cloudflareUrl('photo.jpg', ['width' => 300]);
+
+            expect($url)->toBe('https://staging.example.com/cdn-cgi/image/w=300/storage/photo.jpg');
+        });
+
+        it('composes url sub-path with scoped prefix in transform URLs', function () {
+            $adapter = createAdapter([
+                'url' => 'https://staging.example.com/storage',
+                'prefix' => 'videos',
+            ]);
+
+            $url = $adapter->image('clip.mp4')->width(300)->url();
+
+            expect($url)->toContain('/storage/videos/clip.mp4');
         });
     });
 });
