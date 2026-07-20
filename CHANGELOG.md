@@ -1,5 +1,24 @@
 # Changelog
 
+## [4.0.0](https://github.com/gwhthompson/laravel-cloudflare-transforms/compare/v3.2.3...v4.0.0) (2026-07-20)
+
+
+### ⚠ BREAKING CHANGES
+
+* Storage::disk(...)->image(...) is now Storage::disk(...)->cloudflareImage(...). On Laravel >= 13.17 the old name silently dispatches to the framework's native image() method, so call sites must be updated, not aliased.
+* Laravel 11 is no longer supported; require Laravel 12+.
+
+### Features
+
+* drop EOL Laravel 11 support ([82522b1](https://github.com/gwhthompson/laravel-cloudflare-transforms/commit/82522b1e51eaca4be9ec4a7532383d405cbe979f))
+* expose onerror on the Blade image component ([9c8c908](https://github.com/gwhthompson/laravel-cloudflare-transforms/commit/9c8c90801a35ac8db86bab81a693ee3d7f43f612))
+* rename image() macro to cloudflareImage() ([d352124](https://github.com/gwhthompson/laravel-cloudflare-transforms/commit/d352124d683d5f029c9e8b8b37042af9106e9383))
+
+
+### Bug Fixes
+
+* include the disk url sub-path in transform source paths ([d14a796](https://github.com/gwhthompson/laravel-cloudflare-transforms/commit/d14a796c6a26ce8eb59e560f990f03c797607e1f))
+
 ## [3.2.3](https://github.com/gwhthompson/laravel-cloudflare-transforms/compare/v3.2.2...v3.2.3) (2026-04-10)
 
 
