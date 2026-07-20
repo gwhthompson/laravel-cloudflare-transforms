@@ -21,7 +21,7 @@ Laravel package for Cloudflare Image Transformation URLs.
 
 ### Flow
 
-1. `Storage::disk('x')->image('path')` or `CloudflareImage::make('path')`
+1. `Storage::disk('x')->cloudflareImage('path')` or `CloudflareImage::make('path')`
 2. Chain transforms: `->width(400)->format(Format::Auto)`
 3. `->url()` returns: `https://{domain}/cdn-cgi/image/{transforms}/{path}`
 

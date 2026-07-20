@@ -33,24 +33,24 @@ describe('Storage macros with url config', function () {
         config(['cloudflare-transforms.validate_file_exists' => false]);
     });
 
-    describe('image() macro', function () {
+    describe('cloudflareImage() macro', function () {
         it('returns CloudflareImage when disk has url config', function () {
             $adapter = createTestAdapter(['url' => 'https://cdn.example.com']);
-            $image = $adapter->image('test.jpg');
+            $image = $adapter->cloudflareImage('test.jpg');
 
             expect($image)->toBeInstanceOf(CloudflareImage::class);
         });
 
         it('returns NullCloudflareImage when disk has no url config', function () {
             $adapter = createTestAdapter([]);
-            $image = $adapter->image('test.jpg');
+            $image = $adapter->cloudflareImage('test.jpg');
 
             expect($image)->toBeInstanceOf(NullCloudflareImage::class);
         });
 
         it('extracts domain from url config', function () {
             $adapter = createTestAdapter(['url' => 'https://cdn.example.com']);
-            $image = $adapter->image('test.jpg');
+            $image = $adapter->cloudflareImage('test.jpg');
             $url = $image->url();
 
             expect($url)->toContain('cdn.example.com');
@@ -59,10 +59,10 @@ describe('Storage macros with url config', function () {
         it('handles url with path', function () {
             $adapter = createTestAdapter(['url' => 'https://cdn.example.com/storage']);
 
-            expect($adapter->image('test.jpg')->url())
+            expect($adapter->cloudflareImage('test.jpg')->url())
                 ->toBe('https://cdn.example.com/storage/test.jpg');
 
-            expect($adapter->image('test.jpg')->width(300)->url())
+            expect($adapter->cloudflareImage('test.jpg')->width(300)->url())
                 ->toBe('https://cdn.example.com/cdn-cgi/image/w=300/storage/test.jpg');
         });
     });
@@ -125,7 +125,7 @@ describe('Storage macros with global domain fallback', function () {
         config(['cloudflare-transforms.domain' => 'fallback.cloudflare.com']);
 
         $adapter = createTestAdapter([]);
-        $image = $adapter->image('test.jpg');
+        $image = $adapter->cloudflareImage('test.jpg');
 
         expect($image)->toBeInstanceOf(CloudflareImage::class);
 
@@ -137,7 +137,7 @@ describe('Storage macros with global domain fallback', function () {
         config(['cloudflare-transforms.domain' => 'fallback.cloudflare.com']);
 
         $adapter = createTestAdapter(['url' => 'https://disk-specific.cloudflare.com']);
-        $url = $adapter->image('test.jpg')->url();
+        $url = $adapter->cloudflareImage('test.jpg')->url();
 
         expect($url)
             ->toContain('disk-specific.cloudflare.com')
@@ -153,7 +153,7 @@ describe('NullCloudflareImage behavior via macros', function () {
 
     it('ignores all transformations', function () {
         $adapter = createTestAdapter([]);
-        $image = $adapter->image('test.jpg');
+        $image = $adapter->cloudflareImage('test.jpg');
 
         expect($image)->toBeInstanceOf(NullCloudflareImage::class);
 
@@ -174,7 +174,7 @@ describe('NullCloudflareImage behavior via macros', function () {
 
     it('returns regular storage URL', function () {
         $adapter = createTestAdapter([]);
-        $image = $adapter->image('test.jpg');
+        $image = $adapter->cloudflareImage('test.jpg');
         $url = $image->url();
 
         expect($url)->toBeString();

@@ -11,7 +11,7 @@ Fluent API for [Cloudflare Image Transformations](https://developers.cloudflare.
 
 ## Installation
 
-Requires PHP 8.3+ and Laravel 11+.
+Requires PHP 8.3+ and Laravel 12+.
 
 ```bash
 composer require gwhthompson/laravel-cloudflare-transforms
@@ -35,14 +35,14 @@ source path, which Cloudflare resolves from the zone root.
 ## Usage
 
 ```php
-Storage::disk('media')->image('photo.jpg')
+Storage::disk('media')->cloudflareImage('photo.jpg')
     ->width(400)
     ->format(Format::Auto)
     ->url();
 // → https://cdn.example.com/cdn-cgi/image/w=400,f=auto/photo.jpg
 
 // Responsive srcset
-Storage::disk('media')->image('hero.jpg')
+Storage::disk('media')->cloudflareImage('hero.jpg')
     ->srcset([320, 640, 960, 1280]);
 
 // Convenience methods

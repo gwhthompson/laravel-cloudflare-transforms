@@ -27,8 +27,8 @@ function createAdapter(array $config): FilesystemAdapter
 
 describe('CloudflareTransformsServiceProvider', function () {
     describe('macro registration', function () {
-        it('registers image macro on FilesystemAdapter', function () {
-            expect(FilesystemAdapter::hasMacro('image'))->toBeTrue();
+        it('registers cloudflareImage macro on FilesystemAdapter', function () {
+            expect(FilesystemAdapter::hasMacro('cloudflareImage'))->toBeTrue();
         });
 
         it('registers cloudflareUrl macro on FilesystemAdapter', function () {
@@ -103,24 +103,24 @@ describe('CloudflareTransformsServiceProvider', function () {
             });
         });
 
-        describe('image macro', function () {
+        describe('cloudflareImage macro', function () {
             it('returns CloudflareImage when url config present', function () {
                 $adapter = createAdapter(['url' => 'https://cdn.test.com']);
-                $image = $adapter->image('test.jpg');
+                $image = $adapter->cloudflareImage('test.jpg');
 
                 expect($image)->toBeInstanceOf(CloudflareImage::class);
             });
 
             it('returns NullCloudflareImage when no url config', function () {
                 $adapter = createAdapter([]);
-                $image = $adapter->image('test.jpg');
+                $image = $adapter->cloudflareImage('test.jpg');
 
                 expect($image)->toBeInstanceOf(NullCloudflareImage::class);
             });
 
             it('NullCloudflareImage returns regular URL', function () {
                 $adapter = createAdapter([]);
-                $image = $adapter->image('test.jpg');
+                $image = $adapter->cloudflareImage('test.jpg');
 
                 $url = $image->width(300)->url();
 
@@ -266,13 +266,13 @@ describe('CloudflareTransformsServiceProvider', function () {
             config(['cloudflare-transforms.validate_file_exists' => false]);
         });
 
-        it('includes prefix in transform URL for image macro', function () {
+        it('includes prefix in transform URL for cloudflareImage macro', function () {
             $adapter = createAdapter([
                 'url' => 'https://cdn.example.com',
                 'prefix' => 'videos',
             ]);
 
-            $url = $adapter->image('clip.mp4')->url();
+            $url = $adapter->cloudflareImage('clip.mp4')->url();
 
             expect($url)->toContain('videos/clip.mp4');
         });
@@ -295,7 +295,7 @@ describe('CloudflareTransformsServiceProvider', function () {
                 'prefix' => 'media/uploads',
             ]);
 
-            $url = $adapter->image('photo.jpg')->width(400)->url();
+            $url = $adapter->cloudflareImage('photo.jpg')->width(400)->url();
 
             expect($url)->toContain('media/uploads/photo.jpg');
         });
@@ -310,7 +310,7 @@ describe('CloudflareTransformsServiceProvider', function () {
         it('includes the url sub-path in transform URLs', function () {
             $adapter = createAdapter(['url' => 'https://staging.example.com/storage']);
 
-            $url = $adapter->image('products/photo.jpg')->width(400)->url();
+            $url = $adapter->cloudflareImage('products/photo.jpg')->width(400)->url();
 
             expect($url)->toBe('https://staging.example.com/cdn-cgi/image/w=400/storage/products/photo.jpg');
         });
@@ -318,7 +318,7 @@ describe('CloudflareTransformsServiceProvider', function () {
         it('includes the url sub-path in base URLs', function () {
             $adapter = createAdapter(['url' => 'https://staging.example.com/storage']);
 
-            $url = $adapter->image('photo.jpg')->url();
+            $url = $adapter->cloudflareImage('photo.jpg')->url();
 
             expect($url)->toBe('https://staging.example.com/storage/photo.jpg');
         });
@@ -337,7 +337,7 @@ describe('CloudflareTransformsServiceProvider', function () {
                 'prefix' => 'videos',
             ]);
 
-            $url = $adapter->image('clip.mp4')->width(300)->url();
+            $url = $adapter->cloudflareImage('clip.mp4')->width(300)->url();
 
             expect($url)->toContain('/storage/videos/clip.mp4');
         });
@@ -365,7 +365,7 @@ describe('Package integration', function () {
         config(['cloudflare-transforms.validate_file_exists' => false]);
 
         $adapter = createAdapter([]);
-        $image = $adapter->image('test.jpg');
+        $image = $adapter->cloudflareImage('test.jpg');
 
         expect($image)->toBeInstanceOf(NullCloudflareImage::class);
 
@@ -378,7 +378,7 @@ describe('Package integration', function () {
         config(['cloudflare-transforms.validate_file_exists' => false]);
 
         $adapter = createAdapter(['url' => 'https://cdn.e2e-test.com']);
-        $image = $adapter->image('test.jpg');
+        $image = $adapter->cloudflareImage('test.jpg');
 
         expect($image)->toBeInstanceOf(CloudflareImage::class);
 
@@ -391,12 +391,12 @@ describe('Package integration', function () {
 });
 
 describe('file validation in macros', function () {
-    it('throws FileNotFoundException from image macro when file missing', function () {
+    it('throws FileNotFoundException from cloudflareImage macro when file missing', function () {
         Storage::fake('cloudflare');
         config(['filesystems.disks.cloudflare.url' => 'https://cdn.example.com']);
         config(['cloudflare-transforms.validate_file_exists' => true]);
 
-        expect(fn () => Storage::disk('cloudflare')->image('nonexistent.jpg'))
+        expect(fn () => Storage::disk('cloudflare')->cloudflareImage('nonexistent.jpg'))
             ->toThrow(FileNotFoundException::class);
     });
 
@@ -414,7 +414,7 @@ describe('file validation in macros', function () {
         config(['filesystems.disks.cloudflare.url' => 'https://cdn.example.com']);
         config(['cloudflare-transforms.validate_file_exists' => false]);
 
-        $image = Storage::disk('cloudflare')->image('nonexistent.jpg');
+        $image = Storage::disk('cloudflare')->cloudflareImage('nonexistent.jpg');
         expect($image)->toBeInstanceOf(CloudflareImage::class);
     });
 });

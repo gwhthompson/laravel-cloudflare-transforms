@@ -54,7 +54,7 @@ class CloudflareTransformsServiceProvider extends ServiceProvider
      */
     protected function registerStorageMacros(): void
     {
-        FilesystemAdapter::macro('image', function (string $path): CloudflareImageContract {
+        FilesystemAdapter::macro('cloudflareImage', function (string $path): CloudflareImageContract {
             /** @var FilesystemAdapter $this */
             return CloudflareTransformsServiceProvider::imageForDisk($this, $path);
         });
@@ -99,8 +99,7 @@ class CloudflareTransformsServiceProvider extends ServiceProvider
     }
 
     /**
-     * Build a CloudflareImage for a file on the given disk — the shared body
-     * of the `image` and `cloudflareUrl` macros, also used by the Blade
+     * Build a CloudflareImage for a file on the given disk — the shared body     * of the `image` and `cloudflareUrl` macros, also used by the Blade
      * component so it needs no magic-method call. Falls back to a
      * NullCloudflareImage (plain disk URL passthrough) when the disk's url
      * config yields no domain. Validates existence on THIS disk (not the
