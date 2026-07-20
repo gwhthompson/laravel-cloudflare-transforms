@@ -254,6 +254,24 @@ describe('Image Blade component', function () {
             expect($url)->toContain('q=high');
         });
 
+        it('applies onerror parameter to image builder', function () {
+            $component = new Image(path: 'test.jpg', disk: 'media', width: 400, onerror: 'redirect');
+            $url = $component->srcAttribute();
+            expect($url)->toContain('onerror=redirect');
+        });
+
+        it('applies onerror to srcset URLs', function () {
+            $component = new Image(path: 'test.jpg', disk: 'media', srcset: [400, 800], onerror: 'redirect');
+            $srcset = $component->srcsetAttribute();
+            expect($srcset)->toContain('onerror=redirect');
+        });
+
+        it('omits onerror by default', function () {
+            $component = new Image(path: 'test.jpg', disk: 'media', width: 400);
+            $url = $component->srcAttribute();
+            expect($url)->not->toContain('onerror');
+        });
+
         it('combines all transform parameters', function () {
             $component = new Image(
                 path: 'test.jpg',

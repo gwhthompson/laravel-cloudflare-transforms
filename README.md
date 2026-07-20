@@ -28,6 +28,10 @@ Set your disk's `url` to a Cloudflare-proxied domain:
 ],
 ```
 
+A `url` mounted at a sub-path (e.g. the default `public` disk at
+`APP_URL/storage`) works too: the sub-path is folded into the transform
+source path, which Cloudflare resolves from the zone root.
+
 ## Usage
 
 ```php
@@ -56,6 +60,7 @@ Storage::disk('media')->image('hero.jpg')
     :fit="Fit::Cover"
     :srcset="[320, 640, 960, 1280]"
     sizes="(max-width: 640px) 100vw, 50vw"
+    onerror="redirect"
 />
 ```
 

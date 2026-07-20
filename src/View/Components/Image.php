@@ -37,6 +37,7 @@ class Image extends Component
         public ?array $srcset = null,
         public ?int $srcsetDensity = null,
         public ?string $sizes = null,
+        public ?string $onerror = null,
     ) {
         $diskConfig = Config::get('cloudflare-transforms.disk', 'public');
         $this->disk = $disk ?? (is_string($diskConfig) ? $diskConfig : 'public');
@@ -78,6 +79,10 @@ class Image extends Component
 
         if ($this->quality !== null) {
             $image = $image->quality($this->quality);
+        }
+
+        if ($this->onerror !== null) {
+            $image = $image->onerror($this->onerror);
         }
 
         return $image;
