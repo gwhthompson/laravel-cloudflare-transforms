@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Gwhthompson\CloudflareTransforms\View\Components;
 
+use Gwhthompson\CloudflareTransforms\CloudflareTransformsServiceProvider;
 use Gwhthompson\CloudflareTransforms\Contracts\CloudflareImageContract;
 use Gwhthompson\CloudflareTransforms\Enums\Fit;
 use Gwhthompson\CloudflareTransforms\Enums\Format;
@@ -54,8 +55,7 @@ class Image extends Component
         /** @var FilesystemAdapter $disk */
         $disk = Storage::disk($this->disk);
 
-        /** @var CloudflareImageContract $image */
-        $image = $disk->image($this->path); // @phpstan-ignore method.notFound
+        $image = CloudflareTransformsServiceProvider::imageForDisk($disk, $this->path);
 
         if ($this->width !== null) {
             $image = $image->width($this->width);

@@ -56,44 +56,12 @@ class CloudflareTransformsServiceProvider extends ServiceProvider
     {
         FilesystemAdapter::macro('image', function (string $path): CloudflareImageContract {
             /** @var FilesystemAdapter $this */
-            $config = $this->getConfig();
-            $domain = CloudflareTransformsServiceProvider::extractDomain($config);
-
-            if ($domain === '') {
-                return new NullCloudflareImage($this->url($path));
-            }
-
-            // Build the zone-root source path (disk url sub-path + scoped-disk prefix)
-            $fullPath = CloudflareTransformsServiceProvider::applyPathPrefix($path, $config);
-
-            // Validate on THIS disk (not config default)
-            $validateExists = Config::get('cloudflare-transforms.validate_file_exists', true);
-            if ($validateExists && ! $this->exists($path)) {
-                throw FileNotFoundException::forPath($path);
-            }
-
-            return CloudflareImage::make($fullPath, $domain, validateExists: false);
+            return CloudflareTransformsServiceProvider::imageForDisk($this, $path);
         });
 
         FilesystemAdapter::macro('cloudflareUrl', function (string $path, array $options = []): string {
             /** @var FilesystemAdapter $this */
-            $config = $this->getConfig();
-            $domain = CloudflareTransformsServiceProvider::extractDomain($config);
-
-            if ($domain === '') {
-                return $this->url($path);
-            }
-
-            // Build the zone-root source path (disk url sub-path + scoped-disk prefix)
-            $fullPath = CloudflareTransformsServiceProvider::applyPathPrefix($path, $config);
-
-            // Validate on THIS disk (not config default)
-            $validateExists = Config::get('cloudflare-transforms.validate_file_exists', true);
-            if ($validateExists && ! $this->exists($path)) {
-                throw FileNotFoundException::forPath($path);
-            }
-
-            $cloudflareImage = CloudflareImage::make($fullPath, $domain, validateExists: false);
+            $cloudflareImage = CloudflareTransformsServiceProvider::imageForDisk($this, $path);
 
             // Apply transformations from options array (proper fluent pattern - reassign return values)
             if (isset($options['width']) && is_int($options['width'])) {
@@ -128,6 +96,34 @@ class CloudflareTransformsServiceProvider extends ServiceProvider
             'Gwhthompson\\CloudflareTransforms\\View\\Components',
             'cloudflare'
         );
+    }
+
+    /**
+     * Build a CloudflareImage for a file on the given disk — the shared body
+     * of the `image` and `cloudflareUrl` macros, also used by the Blade
+     * component so it needs no magic-method call. Falls back to a
+     * NullCloudflareImage (plain disk URL passthrough) when the disk's url
+     * config yields no domain. Validates existence on THIS disk (not the
+     * config default disk).
+     */
+    public static function imageForDisk(FilesystemAdapter $disk, string $path): CloudflareImageContract
+    {
+        $config = $disk->getConfig();
+        $domain = self::extractDomain($config);
+
+        if ($domain === '') {
+            return new NullCloudflareImage($disk->url($path));
+        }
+
+        // Build the zone-root source path (disk url sub-path + scoped-disk prefix)
+        $fullPath = self::applyPathPrefix($path, $config);
+
+        $validateExists = Config::get('cloudflare-transforms.validate_file_exists', true);
+        if ($validateExists && ! $disk->exists($path)) {
+            throw FileNotFoundException::forPath($path);
+        }
+
+        return CloudflareImage::make($fullPath, $domain, validateExists: false);
     }
 
     /**
